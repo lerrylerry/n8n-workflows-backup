@@ -1,0 +1,299 @@
+{
+  "updatedAt": "2026-04-10T05:51:07.181Z",
+  "createdAt": "2026-03-27T01:55:26.633Z",
+  "id": "e2bQg6QryPa3JmcN",
+  "name": "AI FB Agent",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "1qUMBYgh7DC73R3_JQuBKO23P1cdIrfd6oKIksHpYl_Y"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        48,
+        -16
+      ],
+      "id": "3ae6048d-f619-49d4-9de4-f91cfc8b030f",
+      "name": "Get a document",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "kh4GcdfsfTHkQVr5",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Instruction:\nReply naturally like a real person chatting on Facebook Messenger.\n\nFollow these:\n- Be conversational, calm, and helpful\n- Avoid sounding robotic or too formal\n- Keep answers clear and practical\n- If technical, simplify the explanation\n- If needed, guide step-by-step\n- Do not overwhelm the user\n- You may ask a follow-up question if unclear\n\nBehavior:\n- Use the provided Knowledge Base as your main reference\n- If the question is about identity, creator, or owner, answer using the personal information in the Knowledge Base\n- If the answer is not in the Knowledge Base, respond normally based on general knowledge\n\nIf the user asks about services, hiring, or contact:\n- Provide your contact details clearly and confidently\n\n- If the user message is unclear (e.g., “who is this?”, “who are you?”), assume they are asking about your identity and introduce yourself briefly using the Knowledge Base\n\n- Never say \"I am an AI assistant\" or anything similar\n- Always respond as John Lerry Laungayan, as a real human\n\nGoal:\nHelp the user in a human, simple, and practical way while representing your personal brand.\n\n---\n\nKnowledge Base:\n{{ $json.content }}\n\n---\n\nUser message:\n{{ $json[\"message\"] }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        -16
+      ],
+      "id": "f976934d-b035-43f5-815e-f0195039026d",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        112,
+        176
+      ],
+      "id": "2d617ab2-2027-49e8-b3b4-9ad1b46b3798",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "WLWpWivMNhQ3htgU",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "1"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        256,
+        176
+      ],
+      "id": "da27f6cf-1b82-442b-9be3-6970c78a6b29",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "d6c4b076-129d-4c72-82b0-bc3787e9d9ad",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -368,
+        -160
+      ],
+      "id": "e169d5e8-844a-4364-826d-9a029d48e078",
+      "name": "Webhook",
+      "webhookId": "d6c4b076-129d-4c72-82b0-bc3787e9d9ad"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8a463f3d-e6fd-4267-8f23-a187d7896dd2",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -160,
+        -224
+      ],
+      "id": "b58ae176-1d9b-417c-bf5c-c8289aad8fcc",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        112,
+        -288
+      ],
+      "id": "2cdcaaf8-a644-4dc7-893d-d85d93bcf15c",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "url": "facebook.com",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        576,
+        -16
+      ],
+      "id": "d12ae88c-4b08-4175-b4e6-d4b14e509757",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bcf025c8-1f57-4c61-8f9c-c68675b8c4c3",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -160,
+        -48
+      ],
+      "id": "77a89789-52c0-47ba-8520-a907a01df5a4",
+      "name": "Filter"
+    }
+  ],
+  "connections": {
+    "Get a document": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Get a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "a286ad74-d73d-4a53-bb1a-b0eef2c65bd6",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-03-27T01:55:26.633Z",
+      "createdAt": "2026-03-27T01:55:26.633Z",
+      "role": "workflow:owner",
+      "workflowId": "e2bQg6QryPa3JmcN",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
