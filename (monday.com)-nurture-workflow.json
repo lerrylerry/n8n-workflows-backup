@@ -1,0 +1,1001 @@
+{
+  "updatedAt": "2026-04-23T03:37:01.875Z",
+  "createdAt": "2026-04-21T02:14:40.845Z",
+  "id": "jT2XujDbg5WvyOdj",
+  "name": "(Monday.com) Nurture Workflow",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "Item_id",
+              "type": "number"
+            },
+            {
+              "name": "Name",
+              "type": "any"
+            },
+            {
+              "name": "Email",
+              "type": "any"
+            },
+            {
+              "name": "Follow_Up_Step",
+              "type": "any"
+            },
+            {
+              "name": "Pipeline_Status"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -592,
+        192
+      ],
+      "id": "96a5440c-dc98-4a86-89f8-bc6d461afe54",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        384,
+        336
+      ],
+      "id": "9aee3e97-3fb6-4f3a-a82e-61f02fa1b1fd",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "[ { \"output\": { \"type\": \"object\", \"properties\": { \"subject\": { \"type\": \"object\" }, \"body\": { \"type\": \"object\" } }, \"required\": [ \"subject\", \"body\" ] } } ]"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        528,
+        336
+      ],
+      "id": "d4e072e6-9797-4d33-9216-d5706bb3b90a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "resource": "boardItem",
+        "operation": "changeColumnValue",
+        "boardId": "5027935673",
+        "itemId": "={{ $json.Item_id }}",
+        "columnId": "color_mm2k44vn",
+        "value": "={ \"label\": \"Nurturing\" }"
+      },
+      "type": "n8n-nodes-base.mondayCom",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        192
+      ],
+      "id": "4f4bf325-4f0c-47da-b3c6-d0db1da7494c",
+      "name": "Update the Lead Status to Nurturing",
+      "credentials": {
+        "mondayComApi": {
+          "id": "rFFQsfGVKcC4tfCT",
+          "name": "Monday.com account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "days"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        256,
+        -224
+      ],
+      "id": "5aba991b-b1a7-4b1b-bd9d-90ca3ffeec82",
+      "name": "Wait for 3 Days",
+      "webhookId": "207ebfb7-cfdd-4ba7-b97a-064c73d983ea"
+    },
+    {
+      "parameters": {
+        "amount": 7,
+        "unit": "days"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        784,
+        -208
+      ],
+      "id": "681757f8-3636-4bc6-9268-57038b235015",
+      "name": "Wait for 7 Days",
+      "webhookId": "207ebfb7-cfdd-4ba7-b97a-064c73d983ea"
+    },
+    {
+      "parameters": {
+        "amount": 7,
+        "unit": "days"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        544,
+        -208
+      ],
+      "id": "d1a0b274-99a0-40d0-b47f-2e233a8e4241",
+      "name": "Wait for 4 Days",
+      "webhookId": "207ebfb7-cfdd-4ba7-b97a-064c73d983ea"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1984620d-bf94-42ee-adf4-5b19669e0c04",
+              "name": "Follow_Up_Count",
+              "value": "={{ $('Get Data of the Lead').item.json.column_values[9].text.toNumber() + 1}}",
+              "type": "string"
+            },
+            {
+              "id": "ad2d1f70-f86f-444b-8401-5bbd39f1178f",
+              "name": "Next_Follow_Up_Date",
+              "value": "={{ DateTime.fromISO($node[\"Get Data of the Lead\"].json.column_values[10].text.trim()).plus({days: 4}).toISODate() }}",
+              "type": "string"
+            },
+            {
+              "id": "9abde593-6296-4b92-b0ee-a358f113b900",
+              "name": "id",
+              "value": "={{ $('Get Data of the Lead').item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        192
+      ],
+      "id": "54e243dc-9169-457d-a70e-62830a979aac",
+      "name": "Mapped the Fields for Next Action"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "10fc11b6-b5e8-4f39-9bfe-f01039d77f8e",
+              "leftValue": "={{ $('Mapped the Data from the Main Workflow').item.json.Pipeline_Status }}",
+              "rightValue": "Converted",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        176,
+        192
+      ],
+      "id": "fbda4ef0-449e-497d-8e13-117443e4d614",
+      "name": "Check if Lead Status is not equal to Converted"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "10fc11b6-b5e8-4f39-9bfe-f01039d77f8e",
+              "leftValue": "={{ $json.column_values[7].text }}",
+              "rightValue": "Converted",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1360,
+        192
+      ],
+      "id": "a3f5ed08-1d38-49be-9694-bad107e54c61",
+      "name": "Check if Lead Status is not equal to Converted1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        448
+      ],
+      "id": "25492cf5-0b41-4ac6-b79d-12bc7bc43f88",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "[ { \"output\": { \"type\": \"object\", \"properties\": { \"subject\": { \"type\": \"object\" }, \"body\": { \"type\": \"object\" } }, \"required\": [ \"subject\", \"body\" ] } } ]"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1792,
+        448
+      ],
+      "id": "eb66e8f8-a8a3-4bf7-ab13-20a17b095bb1",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1984620d-bf94-42ee-adf4-5b19669e0c04",
+              "name": "Follow_Up_Count",
+              "value": "={{ $('Get Data of the Lead1').item.json.column_values[9].text.toNumber() + 1}}",
+              "type": "string"
+            },
+            {
+              "id": "ad2d1f70-f86f-444b-8401-5bbd39f1178f",
+              "name": "Next_Follow_Up_Date",
+              "value": "={{ DateTime.fromISO($node[\"Get Data of the Lead1\"].json.column_values[10].text.trim()).plus({days: 7}).toISODate() }}",
+              "type": "string"
+            },
+            {
+              "id": "9abde593-6296-4b92-b0ee-a358f113b900",
+              "name": "id",
+              "value": "={{ $('Get Data of the Lead1').item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2272,
+        192
+      ],
+      "id": "607d7763-9085-4d17-89ff-9a2f06253471",
+      "name": "Mapped the Fields for Next Action1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2784,
+        576
+      ],
+      "id": "2c1fbafa-6386-498b-92d4-97e317cad503",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "[ { \"output\": { \"type\": \"object\", \"properties\": { \"subject\": { \"type\": \"object\" }, \"body\": { \"type\": \"object\" } }, \"required\": [ \"subject\", \"body\" ] } } ]"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2928,
+        576
+      ],
+      "id": "6389baee-97fa-40f2-9ebb-872024d4c762",
+      "name": "Structured Output Parser2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "10fc11b6-b5e8-4f39-9bfe-f01039d77f8e",
+              "leftValue": "={{ $json.column_values[7].text }}",
+              "rightValue": "Converted",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        3408,
+        176
+      ],
+      "id": "43e3dd50-fec9-47b1-a845-bd6599e88085",
+      "name": "Check if Lead Status is not equal to Converted2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1984620d-bf94-42ee-adf4-5b19669e0c04",
+              "name": "Follow_Up_Count",
+              "value": "={{ $('Get Data of the Lead').item.json.column_values[9].text.toNumber() + 1}}",
+              "type": "string"
+            },
+            {
+              "id": "ad2d1f70-f86f-444b-8401-5bbd39f1178f",
+              "name": "Next_Follow_Up_Date",
+              "value": "={{ \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "9abde593-6296-4b92-b0ee-a358f113b900",
+              "name": "id",
+              "value": "={{ $('Get Data of the Lead').item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3632,
+        176
+      ],
+      "id": "ab0e4f2b-31a8-4d04-80f3-9b529d554504",
+      "name": "Mapped the Fields for Next Action2"
+    },
+    {
+      "parameters": {
+        "resource": "boardItem",
+        "operation": "changeMultipleColumnValues",
+        "boardId": "5027935673",
+        "itemId": "={{ $json.id }}",
+        "columnValues": "={\n  \"text_mm2n6djp\": {{ $json.Follow_Up_Count.toJsonString() }},\n  \"date\": {\n    \"date\": \"{{ $json.Next_Follow_Up_Date }}\"\n  }\n}\n"
+      },
+      "type": "n8n-nodes-base.mondayCom",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        192
+      ],
+      "id": "8ac26e9b-2d00-419b-8482-b2f5312b10de",
+      "name": "Update Next Follow-Up Date in Next 4 Days",
+      "credentials": {
+        "mondayComApi": {
+          "id": "rFFQsfGVKcC4tfCT",
+          "name": "Monday.com account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "boardItem",
+        "operation": "changeMultipleColumnValues",
+        "boardId": "5027935673",
+        "itemId": "={{ $json.id }}",
+        "columnValues": "={\n  \"text_mm2n6djp\": {{ $json.Follow_Up_Count.toJsonString() }},\n  \"date\": {\n    \"date\": \"{{ $json.Next_Follow_Up_Date }}\"\n  }\n}\n"
+      },
+      "type": "n8n-nodes-base.mondayCom",
+      "typeVersion": 1,
+      "position": [
+        2528,
+        192
+      ],
+      "id": "ed4daaf8-7e4e-4368-8650-113bc2c63c5d",
+      "name": "Update Next Follow-Up Date in Next 7 Days",
+      "credentials": {
+        "mondayComApi": {
+          "id": "rFFQsfGVKcC4tfCT",
+          "name": "Monday.com account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "boardItem",
+        "operation": "changeMultipleColumnValues",
+        "boardId": "5027935673",
+        "itemId": "={{ $json.id }}",
+        "columnValues": "={\n  \"text_mm2n6djp\": {{ $json.Follow_Up_Count.toJsonString() }},\n  \"date\": {\n    \"date\": \"{{ $json.Next_Follow_Up_Date }}\"\n  }\n}\n"
+      },
+      "type": "n8n-nodes-base.mondayCom",
+      "typeVersion": 1,
+      "position": [
+        3888,
+        176
+      ],
+      "id": "15b88d4c-2897-4efa-a3a8-858e2ab9eedb",
+      "name": "End the Follow-Up Message",
+      "credentials": {
+        "mondayComApi": {
+          "id": "rFFQsfGVKcC4tfCT",
+          "name": "Monday.com account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Mapped the Data from the Main Workflow').item.json.Email }}",
+        "subject": "={{ $json.output.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.output.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        192
+      ],
+      "id": "5227e792-8b40-4cbc-b253-7063a6e87879",
+      "name": "Send the 1st Follow-Up Message in Day 3",
+      "webhookId": "94256649-4774-4b09-9051-b20f673c15b4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Get Data of the Lead').item.json.column_values[1].text }}",
+        "subject": "={{ $json.output.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.output.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2000,
+        304
+      ],
+      "id": "3cabc697-df01-4d03-ba83-7a9883e53b02",
+      "name": "Send the 2nd Follow-Up Message in Day 7",
+      "webhookId": "94256649-4774-4b09-9051-b20f673c15b4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Get Data of the Lead').item.json.column_values[1].text }}",
+        "subject": "={{ $json.output.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.output.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        3136,
+        432
+      ],
+      "id": "085cbbc6-cbdd-4517-9797-d5d0ab3ad9d9",
+      "name": "Send the 3rd Follow-Up Message in Day 14",
+      "webhookId": "94256649-4774-4b09-9051-b20f673c15b4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a follow-up email (Day 3) for a MEDIUM lead.\n\nLead details:\nName: {{ $json.column_values[0].text }}\nProblem: {{ $json.column_values[12].text }}\n\nGoal:\nProvide a helpful insight or tip.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a consultant providing value without selling.\n\nStyle:\n- Helpful\n- Insightful\n- Practical\n\nGoal:\nGive a useful tip or idea related to their problem.\n\nNo hard selling.\n\nRules:\n- subject must be a plain string (NOT an object)\n- body must be a plain string (NOT an object)\n- Do NOT wrap values inside { \"text\": ... }\n- Do NOT return nested objects\n- Do NOT include explanations\n- Do NOT use markdown or backticks\n\nOutput JSON only."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        368,
+        192
+      ],
+      "id": "71c49ade-66af-4222-9427-ab064061dc43",
+      "name": "Create a message of helpful insight or tip"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a Day 7 follow-up email.\n\nLead details:\nName: {{ $json.column_values[0].text }}\nProblem: {{ $json.column_values[12].text }}\n\nGoal:\nShow a real example or case study.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an expert showing credibility through results.\n\nStyle:\n- Confident\n- Clear\n- Not braggy\n\nGoal:\nShare a short case/example.\n\nRules:\n- subject must be a plain string (NOT an object)\n- body must be a plain string (NOT an object)\n- Do NOT wrap values inside { \"text\": ... }\n- Do NOT return nested objects\n- Do NOT include explanations\n- Do NOT use markdown or backticks\n\nOutput JSON only."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1632,
+        304
+      ],
+      "id": "97ddd3a7-ff1f-4619-8b1a-f4b0c4e3ed5a",
+      "name": "Create a real example or case study."
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a Day 14 follow-up email.\n\nLead details:\nName: {{ $json.column_values[0].text }}\n\nGoal:\nGently check if they’re still interested.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are writing a polite follow-up.\n\nStyle:\n- Casual\n- Respectful\n- Light\n\nGoal:\nGently check in without pressure.\n\nRules:\n- subject must be a plain string (NOT an object)\n- body must be a plain string (NOT an object)\n- Do NOT wrap values inside { \"text\": ... }\n- Do NOT return nested objects\n- Do NOT include explanations\n- Do NOT use markdown or backticks\n\nOutput JSON only."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2768,
+        432
+      ],
+      "id": "bb9fd131-6a57-4e61-9caa-3a33c1aa88c9",
+      "name": "Create gently a check if they’re still interested."
+    },
+    {
+      "parameters": {
+        "resource": "boardItem",
+        "operation": "get",
+        "itemId": "={{ $json.id }}"
+      },
+      "type": "n8n-nodes-base.mondayCom",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        -224
+      ],
+      "id": "31a05573-146a-4c88-ba50-48a978df7857",
+      "name": "Get Data of the Lead3",
+      "credentials": {
+        "mondayComApi": {
+          "id": "rFFQsfGVKcC4tfCT",
+          "name": "Monday.com account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        -208
+      ],
+      "id": "38e8963d-9e47-4761-ad33-97a1df6a1fb9",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ced70dd2-d429-4c6c-b922-44ac1b293156",
+              "name": "Item_id",
+              "value": "={{ $json.Item_id }}",
+              "type": "string"
+            },
+            {
+              "id": "951c717e-354b-4a5e-bb0d-ca7dbe3c8a99",
+              "name": "Name",
+              "value": "={{ $json.Name }}",
+              "type": "string"
+            },
+            {
+              "id": "ec7eda46-c93c-4e0d-a363-777623300823",
+              "name": "Email",
+              "value": "={{ $json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "48bb1213-4c96-40e7-b44a-d175e110e6f6",
+              "name": "Follow_Up_Step",
+              "value": "={{ $json.Follow_Up_Step }}",
+              "type": "string"
+            },
+            {
+              "id": "79823d81-78e0-44a2-9f37-ed362ca9994d",
+              "name": "Pipeline_Status",
+              "value": "={{ $json.Pipeline_Status }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -352,
+        192
+      ],
+      "id": "35323760-2f9a-43ff-b236-9817f84d399e",
+      "name": "Mapped the Data from the Main Workflow"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Mapped the Data from the Main Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Create a message of helpful insight or tip",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Create a message of helpful insight or tip",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update the Lead Status to Nurturing": {
+      "main": [
+        [
+          {
+            "node": "Check if Lead Status is not equal to Converted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for 3 Days": {
+      "main": [
+        []
+      ]
+    },
+    "Mapped the Fields for Next Action": {
+      "main": [
+        [
+          {
+            "node": "Update Next Follow-Up Date in Next 4 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Lead Status is not equal to Converted": {
+      "main": [
+        [
+          {
+            "node": "Create a message of helpful insight or tip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Create a real example or case study.",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Create a real example or case study.",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Lead Status is not equal to Converted1": {
+      "main": [
+        [
+          {
+            "node": "Create a real example or case study.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapped the Fields for Next Action1": {
+      "main": [
+        [
+          {
+            "node": "Update Next Follow-Up Date in Next 7 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Create gently a check if they’re still interested.",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Create gently a check if they’re still interested.",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Lead Status is not equal to Converted2": {
+      "main": [
+        [
+          {
+            "node": "Mapped the Fields for Next Action2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapped the Fields for Next Action2": {
+      "main": [
+        [
+          {
+            "node": "End the Follow-Up Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Next Follow-Up Date in Next 4 Days": {
+      "main": [
+        [
+          {
+            "node": "Check if Lead Status is not equal to Converted1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Next Follow-Up Date in Next 7 Days": {
+      "main": [
+        [
+          {
+            "node": "Create gently a check if they’re still interested.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send the 1st Follow-Up Message in Day 3": {
+      "main": [
+        [
+          {
+            "node": "Mapped the Fields for Next Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send the 2nd Follow-Up Message in Day 7": {
+      "main": [
+        [
+          {
+            "node": "Mapped the Fields for Next Action1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a message of helpful insight or tip": {
+      "main": [
+        [
+          {
+            "node": "Send the 1st Follow-Up Message in Day 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a real example or case study.": {
+      "main": [
+        [
+          {
+            "node": "Send the 2nd Follow-Up Message in Day 7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create gently a check if they’re still interested.": {
+      "main": [
+        [
+          {
+            "node": "Send the 3rd Follow-Up Message in Day 14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send the 3rd Follow-Up Message in Day 14": {
+      "main": [
+        [
+          {
+            "node": "Check if Lead Status is not equal to Converted2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapped the Data from the Main Workflow": {
+      "main": [
+        [
+          {
+            "node": "Update the Lead Status to Nurturing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "43359215-bf6b-4b7c-9c24-3f7822c56be9",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-04-21T02:14:40.845Z",
+      "createdAt": "2026-04-21T02:14:40.845Z",
+      "role": "workflow:owner",
+      "workflowId": "jT2XujDbg5WvyOdj",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
