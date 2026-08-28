@@ -1,0 +1,569 @@
+{
+  "updatedAt": "2026-08-27T13:09:50.975Z",
+  "createdAt": "2026-08-25T04:06:50.546Z",
+  "id": "L3YPs8iFUcBela0B",
+  "name": "Dead Lead Reactivation - C - Inbound Reply Handling",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "-from:me"
+        },
+        "options": {}
+      },
+      "id": "00dc3e4a-97fa-4487-927a-479d388cb0ff",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -3344,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const msg = item.json;\n  const fromRaw = msg.from || (msg.headers && msg.headers.from) || '';\n  const emailMatch = String(fromRaw).match(/<(.+?)>/);\n  const fromEmail = (emailMatch ? emailMatch[1] : fromRaw).toLowerCase().trim();\n\n  return {\n    json: {\n      fromEmail,\n      subject: msg.subject || '',\n      inboundMessage: msg.text || msg.snippet || '',\n      gmailMessageId: msg.id || ''\n    }\n  };\n});"
+      },
+      "id": "5fcedb5a-a47d-4973-9a43-3a0d87a6b3bf",
+      "name": "Normalize Inbound Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3088,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Email",
+              "lookupValue": "={{ $json.fromEmail }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "eb72063f-1d70-4c6c-8bd4-55983330b948",
+      "name": "Find Lead by Email",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -2848,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inbound = $('Normalize Inbound Payload').first().json;\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    fromEmail: inbound.fromEmail,\n    subject: inbound.subject,\n    inboundMessage: inbound.inboundMessage,\n    gmailMessageId: inbound.gmailMessageId\n  }\n}));"
+      },
+      "id": "dde9a2b4-90f8-4eb8-b9b9-f19d3ed70a33",
+      "name": "Merge Lead + Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2608,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 250, messages: [ { role: 'user', content: `You are classifying an inbound EMAIL reply from a home services lead who was contacted as part of a dead-lead reactivation campaign. Lead's original service interest: {{ $json['Service Interested In'] }}. Email subject: \\\"{{ $json.subject }}\\\". Email body they just sent: \\\"{{ $json.inboundMessage }}\\\". Classify the intent as exactly one of: STOP, interested, not_interested, question. STOP = any opt-out language (unsubscribe, remove me, stop emailing me, do not contact). interested = wants to move forward, book a call, get pricing, or continue the conversation positively. not_interested = polite or firm decline, no further interest. question = asking for info without a clear opt-in/out signal yet. If intent is 'question', also draft a short, helpful reply_text (under 120 words, no emojis, plain text, no signature needed). For all other intents, reply_text should be an empty string. Return ONLY valid JSON in this exact shape, nothing else: {\\\"intent\\\": \\\"...\\\", \\\"reply_text\\\": \\\"...\\\"}` } ] }) }}",
+        "options": {}
+      },
+      "id": "92dd9e37-26d3-4446-b3f8-3444c6265b9b",
+      "name": "Classify Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2368,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Q5OG1XyWLgZn0fe9",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Same fix as Workflow B: after the HTTP Request node, $json is Claude's raw\n// API response, not the lead+message data. Pull the original back in by\n// position from the node right before the HTTP call.\nconst originalItems = $('Merge Lead + Message').all().map(i => i.json);\n\nreturn items.map((item, idx) => {\n  const original = originalItems[idx] || {};\n  const raw = item.json?.content?.[0]?.text || '{}';\n  const cleaned = raw.replace(/```json|```/g, '').trim();\n\n  let parsed;\n  try {\n    parsed = JSON.parse(cleaned);\n  } catch (e) {\n    parsed = { intent: 'question', reply_text: '' };\n  }\n\n  return {\n    json: {\n      ...original,\n      intent: parsed.intent,\n      reply_text: parsed.reply_text || ''\n    }\n  };\n});"
+      },
+      "id": "a6ffd570-df62-48a6-bfde-2e54aac21f2b",
+      "name": "Parse Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2128,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "STOP",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "interested",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "not_interested",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "question",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "6cfea5fc-3f21-45a3-ac3c-ed17b353c800",
+      "name": "Route by Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -1888,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Suppression",
+          "mode": "list",
+          "cachedResultName": "Suppression"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Record ID": "={{ $json['Record ID'] }}",
+            "Email": "={{ $json['Email'] }}",
+            "Phone Number": "={{ $json['Phone Number'] }}",
+            "Suppression Channel": "Email",
+            "Suppression Reason": "Replied unsubscribe/stop to email",
+            "Date Added": "={{ $now.format('yyyy-MM-dd') }}",
+            "Notes": "Auto-added by Workflow C on STOP reply."
+          }
+        },
+        "options": {}
+      },
+      "id": "eb78d1e1-dc9f-4532-8302-e78c9b185037",
+      "name": "Append to Suppression",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1648,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Record ID"
+          ],
+          "value": {
+            "Record ID": "={{ $json['Record ID'] }}",
+            "Status": "Do Not Contact"
+          }
+        },
+        "options": {}
+      },
+      "id": "87f14865-3d5e-47af-b53c-579c080c10c1",
+      "name": "Update Lead - Do Not Contact",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1408,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Record ID"
+          ],
+          "value": {
+            "Record ID": "={{ $json['Record ID'] }}",
+            "Status": "Hot Lead - Needs Human Follow-Up"
+          }
+        },
+        "options": {}
+      },
+      "id": "14600005-d4c1-49f3-aa03-e1dab171065a",
+      "name": "Update Lead - Hot Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1648,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Record ID"
+          ],
+          "value": {
+            "Record ID": "={{ $json['Record ID'] }}",
+            "Status": "Not Interested - Dead"
+          }
+        },
+        "options": {}
+      },
+      "id": "1d981b3d-99dd-4590-af9b-1789d9f1b4d9",
+      "name": "Update Lead - Not Interested",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1648,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.gmailMessageId }}",
+        "message": "={{ $json.reply_text }}",
+        "options": {}
+      },
+      "id": "99b53ed9-7b39-46d0-a9c5-2db4c9077f31",
+      "name": "Send AI Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1648,
+        496
+      ],
+      "webhookId": "6774f84b-fe01-45d3-960d-895d28b26519"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Record ID"
+          ],
+          "value": {
+            "Record ID": "={{ $json['Record ID'] }}",
+            "Conversation Log": "={{ ($json['Conversation Log'] || '') + '\\nLead: ' + $json.inboundMessage + '\\nAI: ' + $json.reply_text }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "5046336d-3a5d-4dd3-96d6-1660dd14fd75",
+      "name": "Update Conversation Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1408,
+        496
+      ]
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Inbound Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Inbound Payload": {
+      "main": [
+        [
+          {
+            "node": "Find Lead by Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Lead by Email": {
+      "main": [
+        [
+          {
+            "node": "Merge Lead + Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Lead + Message": {
+      "main": [
+        [
+          {
+            "node": "Classify Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Reply": {
+      "main": [
+        [
+          {
+            "node": "Parse Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Classification": {
+      "main": [
+        [
+          {
+            "node": "Route by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Intent": {
+      "main": [
+        [
+          {
+            "node": "Append to Suppression",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Lead - Hot Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Lead - Not Interested",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send AI Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Suppression": {
+      "main": [
+        [
+          {
+            "node": "Update Lead - Do Not Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send AI Reply": {
+      "main": [
+        [
+          {
+            "node": "Update Conversation Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "7c90c07e-8fde-4840-9c9d-bb673a8f7045",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-08-25T04:06:50.546Z",
+      "createdAt": "2026-08-25T04:06:50.546Z",
+      "role": "workflow:owner",
+      "workflowId": "L3YPs8iFUcBela0B",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": [
+    {
+      "updatedAt": "2026-08-25T04:07:28.016Z",
+      "createdAt": "2026-08-25T04:07:28.016Z",
+      "id": "xeeTj944UymGSSBh",
+      "name": "Reactivation"
+    }
+  ]
+}
