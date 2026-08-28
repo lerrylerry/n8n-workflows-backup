@@ -1,0 +1,682 @@
+{
+  "updatedAt": "2026-08-27T12:42:36.025Z",
+  "createdAt": "2026-08-27T05:20:30.907Z",
+  "id": "N7lvVoHJBXvPcXdg",
+  "name": "Dead Lead Reactivation - B - Outbound Sequence",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "id": "2821a1e3-72ff-4167-a5fa-4c4e62c82eae",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1136,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const BATCH_LIMIT = 20; // keep sends small while testing\n\n// Only leads that are (a) flagged ready by Workflow A and (b) have actually\n// opted in to EMAIL specifically. A lead could be 'ready_for_outreach' with\n// SMS-only consent — since we're email-only now, those are correctly\n// skipped here rather than emailed without consent for that channel.\nconst ready = items.filter(item =>\n  item.json['Status'] === 'ready_for_outreach' &&\n  item.json['Email Opt-In'] === 'Yes'\n);\nreturn ready.slice(0, BATCH_LIMIT);"
+      },
+      "id": "007721f4-acf7-4ec5-99ef-0ab48f14da2c",
+      "name": "Filter Ready & Cap Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull the original lead details by sequence position\nconst originalLeads = $('Filter Ready & Cap Batch').all().map(i => i.json);\n\nreturn items.map((item, idx) => {\n  const lead = originalLeads[idx] || {};\n  \n  // Extract the cleanly parsed fields directly from the LLM output object\n  const outputData = item.json?.output || {};\n\n  return {\n    json: {\n      ...lead, // Keeps your row ID, email address, etc.\n      emailSubject: outputData.subject || 'Following up on your project',\n      emailBody: outputData.body || ''\n    }\n  };\n});\n"
+      },
+      "id": "6c020c10-a92c-4b4a-8e60-e27d7b0c5323",
+      "name": "Parse AI Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "=iloveyou123xc@gmail.com",
+        "subject": "={{ $json.emailSubject }}",
+        "message": "={{ $json.emailBody }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "cc99527f-bdbc-449b-bb64-7594e9978ba5",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        432,
+        208
+      ],
+      "webhookId": "0c646fe3-caa0-4081-910d-ff9ae08d30d6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 615516188,
+          "mode": "list",
+          "cachedResultName": "leads_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=615516188"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Record ID": "={{ $('Parse AI Email').item.json['Record ID'] }}",
+            "First Name": "={{ $('Parse AI Email').item.json['First Name'] }}",
+            "Last Name": "={{ $('Parse AI Email').item.json['Last Name'] }}",
+            "Email": "={{ $('Parse AI Email').item.json.Email }}",
+            "Phone Number": "={{ $('Parse AI Email').item.json['Phone Number'] }}",
+            "City": "={{ $('Parse AI Email').item.json.City }}",
+            "State/Region": "={{ $('Parse AI Email').item.json['State/Region'] }}",
+            "Lead Status": "={{ $('Parse AI Email').item.json['Lead Status'] }}",
+            "Lifecycle Stage": "={{ $('Parse AI Email').item.json['Lifecycle Stage'] }}",
+            "Original Source": "={{ $('Parse AI Email').item.json['Original Source'] }}",
+            "Create Date": "={{ $('Parse AI Email').item.json['Create Date'] }}",
+            "Last Activity Date": "={{ $('Parse AI Email').item.json['Last Activity Date'] }}",
+            "Days Since Last Activity": "={{ $('Parse AI Email').item.json['Days Since Last Activity'] }}",
+            "Service Interested In": "={{ $('Parse AI Email').item.json['Service Interested In'] }}",
+            "Estimated Deal Value": "={{ $('Parse AI Email').item.json['Estimated Deal Value'] }}",
+            "SMS Opt-In": "={{ $('Parse AI Email').item.json['SMS Opt-In'] }}",
+            "Email Opt-In": "={{ $('Parse AI Email').item.json['Email Opt-In'] }}",
+            "Notes": "={{ $('Parse AI Email').item.json.Notes }}",
+            "Segment": "={{ $('Parse AI Email').item.json.Segment }}",
+            "Priority": "={{ $('Parse AI Email').item.json.Priority }}",
+            "Status": "={{ $('Parse AI Email').item.json.Status }}",
+            "Sent Message": "=Subject: {{ $('Parse AI Email').item.json.emailSubject }} | Message: {{ $('Parse AI Email').item.json.emailBody.replace(/\\n+/g, ' ') }}",
+            "Last Contacted Date": "={{ new Date().toISOString().split('T')[0] }}",
+            "Conversation Log": "={{ $('Parse AI Email').item.json['Conversation Log'] }}",
+            "row_number": 0
+          },
+          "matchingColumns": [
+            "Record ID"
+          ],
+          "schema": [
+            {
+              "id": "Record ID",
+              "displayName": "Record ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "State/Region",
+              "displayName": "State/Region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Status",
+              "displayName": "Lead Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lifecycle Stage",
+              "displayName": "Lifecycle Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Original Source",
+              "displayName": "Original Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Create Date",
+              "displayName": "Create Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Activity Date",
+              "displayName": "Last Activity Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Days Since Last Activity",
+              "displayName": "Days Since Last Activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Service Interested In",
+              "displayName": "Service Interested In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estimated Deal Value",
+              "displayName": "Estimated Deal Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SMS Opt-In",
+              "displayName": "SMS Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Opt-In",
+              "displayName": "Email Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Segment",
+              "displayName": "Segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sent Message",
+              "displayName": "Sent Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Contacted Date",
+              "displayName": "Last Contacted Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Conversation Log",
+              "displayName": "Conversation Log",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f5e82347-363e-4b4f-851e-9cf25c87697e",
+      "name": "Update Leads Sheet - Mark Contacted",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        656,
+        240
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 615516188,
+          "mode": "list",
+          "cachedResultName": "leads_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=615516188"
+        },
+        "options": {}
+      },
+      "id": "052ecf97-c1e6-433c-83b2-c10b437d0051",
+      "name": "Read Leads1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -896,
+        208
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a short, warm re-engagement email to a lead who went cold. Refer to the provided details naturally to make it personal, avoid a hard sell, and do not use any emojis. Keep the email body under 120 words and end with a soft, low-pressure question.\n\nLead Details:\n- First Name: {{ $json[\"First Name\"] }}\n- Service Interested In: {{ $json[\"Service Interested In\"] }}\n- Original Source: {{ $json[\"Original Source\"] }}\n- Notes: {{ $json[\"Notes\"] }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an expert copywriter specializing in warm, personalized email outreach for home services companies. Your goal is to write a highly tailored, non-generic re-engagement email that feels like a 1-to-1 message from a local business owner."
+            }
+          ]
+        },
+        "batching": {
+          "batchSize": 1,
+          "delayBetweenBatches": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -160,
+        192
+      ],
+      "id": "bff876f9-3597-4ce1-9b6f-25f687e6aa2e",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        352
+      ],
+      "id": "ce7ebec9-e0c6-4a9f-b681-4fa9c1803704",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"subject\": {\n      \"type\": \"string\",\n      \"description\": \"A natural, warm, and compelling email subject line. Do not use emojis.\"\n    },\n    \"body\": {\n      \"type\": \"string\",\n      \"description\": \"The email body, kept under 120 words, personalized using the lead details, ending with a soft, low-pressure question or call to action.\"\n    }\n  },\n  \"required\": [\n    \"subject\",\n    \"body\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        352
+      ],
+      "id": "69b5a7e9-c9aa-4dee-a69f-bab32db14d25",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -448,
+        208
+      ],
+      "id": "52831cb9-fcd0-4f00-b823-eb1990b3b51e",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0AT7ACQHAS",
+          "mode": "list",
+          "cachedResultName": "lead-alerts"
+        },
+        "text": "=🚀 *Re-engagement Batch Complete*\n\nAll cold leads have been successfully processed!\n• *Total Handled:* {{ $json.length }} leads\n• *AI Engine:* Gemini 2.5 Flash\n• *Action Taken:* Personalized emails generated, sent via Gmail, and Google Sheet updated.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "164489d3-b3c3-489f-ae95-4171c4a9e07a",
+      "name": "Send a message",
+      "webhookId": "05325a2d-070d-49bb-8e49-2af958b5ccb8",
+      "credentials": {
+        "slackApi": {
+          "id": "jcz6WXPrVEg76l77",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        288
+      ],
+      "id": "1459ba5d-943d-45ea-9c62-1c2cc0257c51",
+      "name": "Wait",
+      "webhookId": "eef82c34-4220-4a3d-8a8f-ea34cd283d66"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Leads1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Ready & Cap Batch": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Update Leads Sheet - Mark Contacted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Leads Sheet - Mark Contacted": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Leads1": {
+      "main": [
+        [
+          {
+            "node": "Filter Ready & Cap Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "873ad516-0906-474a-bf87-576e5981ad45",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-08-27T05:20:30.907Z",
+      "createdAt": "2026-08-27T05:20:30.907Z",
+      "role": "workflow:owner",
+      "workflowId": "N7lvVoHJBXvPcXdg",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": [
+    {
+      "updatedAt": "2026-08-25T04:07:28.016Z",
+      "createdAt": "2026-08-25T04:07:28.016Z",
+      "id": "xeeTj944UymGSSBh",
+      "name": "Reactivation"
+    }
+  ]
+}
