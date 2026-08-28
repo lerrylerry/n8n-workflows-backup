@@ -1,0 +1,250 @@
+{
+  "updatedAt": "2026-06-03T11:41:28.146Z",
+  "createdAt": "2026-06-03T09:10:28.448Z",
+  "id": "AQjCIUtK1O1LgsYL",
+  "name": "Hacker News Data Fetch",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        288,
+        288
+      ],
+      "id": "43027cda-65ce-4e1e-9155-d1c94ac3a941",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "all",
+        "limit": 20,
+        "additionalFields": {
+          "keyword": "automation"
+        }
+      },
+      "type": "n8n-nodes-base.hackerNews",
+      "typeVersion": 1,
+      "position": [
+        512,
+        288
+      ],
+      "id": "262722cb-6555-4239-9076-906e49da70a5",
+      "name": "Hacker News",
+      "notesInFlow": true,
+      "retryOnFail": false,
+      "notes": "Get the 10 latest articles."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6141dc56-5c11-4e3a-8f8c-ac341c728b29",
+              "name": "Author",
+              "value": "={{ $json.author }}",
+              "type": "string"
+            },
+            {
+              "id": "bbff20b6-60cb-4edf-92c0-188b2bcee64b",
+              "name": "Title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "aa72e94c-3611-495b-b64e-ef241e392af2",
+              "name": "Article Link",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "1eb0243a-f7d9-4938-b422-d674ac488191",
+              "name": "created_at",
+              "value": "={{ $json.created_at }}",
+              "type": "string"
+            },
+            {
+              "id": "b88e6c37-5b8f-43ce-9683-da024077f7fa",
+              "name": "story_id",
+              "value": "={{ $json.story_id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        752,
+        288
+      ],
+      "id": "3adacf64-fd3e-413f-9c04-9970ea60d9b1",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1WbSfIzU3pTSvfGw8DrhYanTuRjm5J70ParjxL3udLcI",
+          "mode": "list",
+          "cachedResultName": "Dummy Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WbSfIzU3pTSvfGw8DrhYanTuRjm5J70ParjxL3udLcI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WbSfIzU3pTSvfGw8DrhYanTuRjm5J70ParjxL3udLcI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $json.story_id }}",
+            "Author": "={{ $json.Author }}",
+            "Title": "={{ $json.Title }}",
+            "Article Link": "={{ $json[\"Article Link\"] }}",
+            "Creation Date": "={{ $json.created_at }}"
+          },
+          "matchingColumns": [
+            "ID"
+          ],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Author",
+              "displayName": "Author",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Article Link",
+              "displayName": "Article Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Creation Date",
+              "displayName": "Creation Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED",
+          "locationDefine": {
+            "values": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        992,
+        288
+      ],
+      "id": "dabcffc1-6d84-4b67-93db-8c55152c88ce",
+      "name": "Google Sheets",
+      "notesInFlow": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "Record the data"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Hacker News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hacker News": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "888b68e0-0c54-40ff-8122-be81dadd6092",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-06-03T09:10:28.448Z",
+      "createdAt": "2026-06-03T09:10:28.448Z",
+      "role": "workflow:owner",
+      "workflowId": "AQjCIUtK1O1LgsYL",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
