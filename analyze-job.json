@@ -1,0 +1,767 @@
+{
+  "updatedAt": "2026-08-23T11:28:10.945Z",
+  "createdAt": "2026-08-12T06:27:42.103Z",
+  "id": "fU3pvnfQjtTwOzZW",
+  "name": "analyze-job",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "analyze-job",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1984,
+        -992
+      ],
+      "id": "116a2115-33a2-497a-899f-8333f21e78c6",
+      "name": "Webhook",
+      "webhookId": "f51af11b-930f-4e72-b51f-5de24c91f6e4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c7984eb2-7d14-4a81-abee-0563fcc3e313",
+              "leftValue": "={{ $('Normalize Data').item.json.url }}",
+              "rightValue": "=\"\"",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1280,
+        -992
+      ],
+      "id": "e10c93a1-8306-44b0-ac91-846b7c102454",
+      "name": "is URL empty?"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"company\": {\n      \"type\": \"string\"\n    },\n    \"companyBlurb\": {\n      \"type\": \"string\"\n    },\n    \"role\": {\n      \"type\": \"string\"\n    },\n    \"seniority\": {\n      \"type\": \"string\"\n    },\n    \"salary\": {\n      \"type\": \"string\"\n    },\n    \"salaryConfidence\": {\n      \"type\": \"string\"\n    },\n    \"location\": {\n      \"type\": \"string\"\n    },\n    \"workMode\": {\n      \"type\": \"string\"\n    },\n    \"postedAt\": {\n      \"type\": \"string\"\n    },\n    \"employmentType\": {\n      \"type\": \"string\"\n    },\n    \"team\": {\n      \"type\": \"string\"\n    },\n    \"responsibilities\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"requirements\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"must\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"nice\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        }\n      },\n      \"required\": [\n        \"must\",\n        \"nice\"\n      ],\n      \"additionalProperties\": false\n    },\n    \"scores\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"overall\": {\n          \"type\": \"integer\",\n          \"minimum\": 0,\n          \"maximum\": 100\n        },\n        \"technical\": {\n          \"type\": \"integer\",\n          \"minimum\": 0,\n          \"maximum\": 100\n        },\n        \"portfolio\": {\n          \"type\": \"integer\",\n          \"minimum\": 0,\n          \"maximum\": 100\n        },\n        \"experience\": {\n          \"type\": \"integer\",\n          \"minimum\": 0,\n          \"maximum\": 100\n        },\n        \"communication\": {\n          \"type\": \"integer\",\n          \"minimum\": 0,\n          \"maximum\": 100\n        }\n      },\n      \"required\": [\n        \"overall\",\n        \"technical\",\n        \"portfolio\",\n        \"experience\",\n        \"communication\"\n      ],\n      \"additionalProperties\": false\n    },\n    \"recommendation\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"APPLY\",\n        \"MAYBE\",\n        \"SKIP\"\n      ]\n    },\n    \"recommendation_headline\": {\n      \"type\": \"string\"\n    },\n    \"recommendation_reason\": {\n      \"type\": \"string\"\n    },\n    \"reasons\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"strengths\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"title\": {\n            \"type\": \"string\"\n          },\n          \"evidence\": {\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"title\",\n          \"evidence\"\n        ],\n        \"additionalProperties\": false\n      }\n    },\n    \"gaps\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"skill\": {\n            \"type\": \"string\"\n          },\n          \"priority\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"low\",\n              \"medium\",\n              \"high\"\n            ]\n          },\n          \"learningTime\": {\n            \"type\": \"string\"\n          },\n          \"why\": {\n            \"type\": \"string\"\n          }\n        },\n        \"required\": [\n          \"skill\",\n          \"priority\",\n          \"learningTime\",\n          \"why\"\n        ],\n        \"additionalProperties\": false\n      }\n    },\n    \"ats_keywords\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    }\n  },\n  \"required\": [\n    \"company\",\n    \"companyBlurb\",\n    \"role\",\n    \"seniority\",\n    \"salary\",\n    \"salaryConfidence\",\n    \"location\",\n    \"workMode\",\n    \"postedAt\",\n    \"employmentType\",\n    \"team\",\n    \"responsibilities\",\n    \"requirements\",\n    \"scores\",\n    \"recommendation\",\n    \"recommendation_headline\",\n    \"recommendation_reason\",\n    \"reasons\",\n    \"strengths\",\n    \"gaps\",\n    \"ats_keywords\"\n  ],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        432,
+        -656
+      ],
+      "id": "95ecd9ad-2c7d-4be5-9412-7af917cc8e10",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://lerriegpt.vercel.app/api/public/n8n/callback",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-lerrie-secret",
+              "value": "akosilerry1A"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        640,
+        -1136
+      ],
+      "id": "20517fd6-9b3f-41ee-ad43-e932abed372d",
+      "name": "Response back to LerrieGPT"
+    },
+    {
+      "parameters": {
+        "jsCode": "const url = $('Normalize Data').first().json.url;\nlet actorId;\nif (url.includes('linkedin.com')) actorId = 'bebity~linkedin-jobs-scraper';\nelse if (url.includes('indeed.com')) actorId = 'misceres~indeed-scraper';\nelse if (url.includes('jobstreet.com')) actorId = 'blackfalcondata~jobstreet-scraper';\nelse if (url.includes('onlinejobs.ph')) actorId = 'inatanli~onlinejobs-ph-scraper';\nelse throw new Error(`No actor mapped for URL: ${url}`);\n\nreturn { json: { actorId, body: { startUrls: [url] } } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1056,
+        -800
+      ],
+      "id": "76eadfa8-f028-4b23-b85f-4b30814217ea",
+      "name": "Select Scraper Actor"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.apify.com/v2/acts/{{$json.actorId}}/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.body}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -832,
+        -800
+      ],
+      "id": "dd003897-f732-4162-af28-e771245973d0",
+      "name": "Apify Request",
+      "retryOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Q5OG1XyWLgZn0fe9",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        176,
+        -656
+      ],
+      "id": "3a9ae069-426e-4aec-8933-6054564fbd7a",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d424fc12-c759-4f88-9250-002a51e97348",
+              "name": "url",
+              "value": "={{ $json.body.url || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "388d888a-2c42-4f83-ad1a-8f380fda9ebe",
+              "name": "description",
+              "value": "={{ $json.body.description || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1728,
+        -992
+      ],
+      "id": "ab0a32aa-da1b-4964-a1ee-747b19a0609e",
+      "name": "Normalize Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output || $json;\n\nconst recommendationMap = {\n  APPLY: \"apply\",\n  MAYBE: \"maybe\",\n  SKIP: \"skip\",\n};\n\nconst recommendation =\n  String(raw.recommendation || \"MAYBE\").toUpperCase();\n\nconst verdict =\n  recommendationMap[recommendation] || \"maybe\";\n\nconst payload = {\n  endpoint: \"analyze-job\",\n\n  jobId: $json.jobId || $json.id || null,\n\n  data: {\n    summary: {\n      company: raw.company || \"\",\n      companyBlurb: raw.companyBlurb || \"\",\n      role: raw.role || \"\",\n      seniority: raw.seniority || \"\",\n      salary: raw.salary || \"\",\n      salaryConfidence: raw.salaryConfidence || \"\",\n      location: raw.location || \"\",\n      workMode: raw.workMode || \"\",\n      postedAt: raw.postedAt || \"\",\n      employmentType: raw.employmentType || \"\",\n      team: raw.team || \"\",\n    },\n\n    responsibilities: Array.isArray(raw.responsibilities)\n      ? raw.responsibilities\n      : [],\n\n    requirements: {\n      must: Array.isArray(raw.requirements?.must)\n        ? raw.requirements.must\n        : [],\n\n      nice: Array.isArray(raw.requirements?.nice)\n        ? raw.requirements.nice\n        : [],\n    },\n\n    scores: {\n      overall: Number(raw.scores?.overall ?? 0),\n      technical: Number(raw.scores?.technical ?? 0),\n      portfolio: Number(raw.scores?.portfolio ?? 0),\n      experience: Number(raw.scores?.experience ?? 0),\n      communication: Number(raw.scores?.communication ?? 0),\n    },\n\n    recommendation: {\n      verdict,\n\n      headline:\n        raw.recommendation_headline ||\n        \"Review this role\",\n\n      reasons: Array.isArray(raw.reasons)\n        ? raw.reasons\n        : [],\n    },\n\n    strengths: Array.isArray(raw.strengths)\n      ? raw.strengths.map((item) => ({\n          title:\n            typeof item === \"string\"\n              ? item\n              : item.title || \"\",\n\n          evidence:\n            typeof item === \"string\"\n              ? \"\"\n              : item.evidence || \"\",\n        }))\n      : [],\n\n    gaps: Array.isArray(raw.gaps)\n      ? raw.gaps.map((item) => ({\n          skill:\n            typeof item === \"string\"\n              ? item\n              : item.skill || \"\",\n\n          priority:\n            typeof item === \"string\"\n              ? \"medium\"\n              : String(item.priority || \"medium\").toLowerCase(),\n\n          learningTime:\n            typeof item === \"string\"\n              ? \"\"\n              : item.learningTime || \"\",\n\n          why:\n            typeof item === \"string\"\n              ? \"\"\n              : item.why || \"\",\n        }))\n      : [],\n\n    atsKeywords: Array.isArray(raw.ats_keywords)\n      ? raw.ats_keywords.map((item) => ({\n          term: String(item),\n          hits: 1,\n          inResume: false,\n        }))\n      : [],\n  },\n};\n\nreturn [{ json: payload }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -1136
+      ],
+      "id": "fd5b0621-adac-45d9-8d18-b484971a19f0",
+      "name": "Finalize Format"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "1XQuRC3Ium3ldtPQNX0GGXpliVytMtFTQ6r4Q3IBqsEk"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        -1504,
+        -992
+      ],
+      "id": "6cd1bc97-72ca-45ce-a2bb-0b2278ee4768",
+      "name": "Knowledge Base",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "kh4GcdfsfTHkQVr5",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8b2bc16b-7638-4bbb-b1d3-20ed98dbf17c",
+              "name": "source",
+              "value": "scrape",
+              "type": "string"
+            },
+            {
+              "id": "67dad501-7f7c-4230-8121-9efb499b91b0",
+              "name": "title",
+              "value": "={{ $json.title || $json.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "844c7ab7-6839-4a58-b08a-17aaa705c4d8",
+              "name": "location",
+              "value": "={{ $json.location || $json.job_location}}",
+              "type": "string"
+            },
+            {
+              "id": "bd32bbf4-e777-4fc7-a5a9-fe4cb9f5fa39",
+              "name": "company",
+              "value": "={{ $json.company }}",
+              "type": "string"
+            },
+            {
+              "id": "a2568259-180d-4770-9f06-6966715f2795",
+              "name": "salaryText",
+              "value": "={{ $json.salaryText || $json.salary }}",
+              "type": "string"
+            },
+            {
+              "id": "3bd62784-6b0d-4c27-aa99-9bbc5ce964eb",
+              "name": "canonicalUrl",
+              "value": "={{ $json.canonicalUrl || $json.job_url }}",
+              "type": "string"
+            },
+            {
+              "id": "b861a0b2-5b0a-48bd-bc9a-43e8b38603f1",
+              "name": "description",
+              "value": "={{ $json.description || $json.job_description }}",
+              "type": "string"
+            },
+            {
+              "id": "dfc28302-192e-4b15-8859-4c15ce2bac73",
+              "name": "knowledgeBase",
+              "value": "={{ $('Knowledge Base').item.json.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -608,
+        -992
+      ],
+      "id": "960f6949-81e1-4dd5-83e4-fed8b4532178",
+      "name": "Normalize Scrape"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "417ee740-0487-4ab1-8a51-915bd7c75a52",
+              "name": "source",
+              "value": "pasted",
+              "type": "string"
+            },
+            {
+              "id": "22bb45ca-bbea-4b8b-ac7f-b2202037d168",
+              "name": "title",
+              "value": "={{ $json.title || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "dedd88cd-08a1-40c8-8dae-8ace3f2b18fe",
+              "name": "company",
+              "value": "={{ $json.company || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "93f552e2-d5c5-41b2-a1c0-2c896d0e84d7",
+              "name": "location",
+              "value": "={{ $json.location || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "18b9b621-d62a-4c2d-bbaf-d9eae97dadaf",
+              "name": "salary",
+              "value": "={{ $json.salary || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "6e9c13a1-9744-4bbc-95f5-cb13a3974567",
+              "name": "description",
+              "value": "={{ $('Normalize Data').item.json.description || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "dc619358-d2cb-42e1-b5e5-054462546c07",
+              "name": "responsibilities",
+              "value": "=[{{ $json.responsibilities || '' }}]",
+              "type": "string"
+            },
+            {
+              "id": "4e2db618-ef71-4d06-9464-a5b57809abe9",
+              "name": "requirements",
+              "value": "=[{{ $json.requirements || '' }}]",
+              "type": "string"
+            },
+            {
+              "id": "ff17594c-68a9-470a-b83d-d80f3c227c7d",
+              "name": "source_url",
+              "value": "={{ $json.source_url || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -608,
+        -1184
+      ],
+      "id": "7658e3c2-36a9-4d21-8967-2c9082990826",
+      "name": "Normalize Pasted"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "96cb7002-8bf0-40af-a63e-1bdd35d67c55",
+              "leftValue": "={{ $json.description || $json.job_description }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "65bd0186-074f-42b8-930c-a188fea442b9",
+              "leftValue": "={{ $json.description || $json.job_description }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -384,
+        -992
+      ],
+      "id": "77f80c6b-1e17-40e3-a875-e4e963816405",
+      "name": "does scrape jobs succeed?"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -160,
+        -1136
+      ],
+      "id": "852fb700-1bf4-4bc5-80b3-359b78543986",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "chatId": "-1003777945488",
+        "text": "=*CRITICAL WORKFLOW ALERT* 🚨\n\n*What happened:*\nAn incoming email could not be processed because the Apify does not scraping the job post. \n\n*Details:*\n• *Node:* Apify\n• *Impact:* Job Analysis Paused\n• *Recommendation:* Check if Apify hit the monthly limit.\n",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -608,
+        -800
+      ],
+      "id": "ca691e28-918c-4b1e-8ba6-8dd2feda1cc4",
+      "name": "Notify Apify Error",
+      "webhookId": "6d47aa6a-1383-4645-816c-7ce695410b0f",
+      "credentials": {
+        "telegramApi": {
+          "id": "sxJ5EL7mfUrwZ2n3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -160,
+        -704
+      ],
+      "id": "a79014f5-2c85-4296-8678-044b62e74af4",
+      "name": "Wait for 15 seconds",
+      "webhookId": "0b77bdfa-34f9-42de-acfd-ddb87866135b"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2ba145c3-a5fb-4274-957f-1017caced763",
+              "leftValue": "={{ $json.description }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -384,
+        -1184
+      ],
+      "id": "9ef1c3ad-e5b6-47e4-8437-9ab103b11af8",
+      "name": "filter description is empty"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this job against the candidate's Career Profile.\n\nJOB:\nTitle: {{ $json.title }}\nCompany: {{ $json.company }}\nLocation: {{ $json.location }}\nSalary: {{ $json.salary || $json.salaryText}}\nURL: {{ $json.job_url || $json.canonicalUrl }}\n\nJOB DESCRIPTION:\n{{ $json.description }}\n\nCANDIDATE CAREER PROFILE:\n{{ $('Knowledge Base').item.json.content }}\n\nReturn an objective assessment based only on the information provided.\n\nYou are LerrieGPT, an AI Career Copilot.\n\nAnalyze the provided JOB against the candidate's CAREER PROFILE.\n\nThe workflow has already resolved the authoritative job source. Use the provided JOB as the source of truth for the job.\n\nThe CAREER PROFILE is the source of truth for the candidate.\n\nRules:\n- Never invent candidate experience, skills, projects, certifications, achievements, or qualifications.\n- Distinguish professional experience from projects, education, certifications, and learning.\n- Compare job requirements with the candidate's actual evidence.\n- Do not assume the candidate has a skill simply because the job requires it.\n- Identify genuine strengths and skill gaps.\n- All scores MUST be integers from 0 to 100, where 100 means an excellent match.\n- NEVER use a 1–10 scale.\n- overall, technical, portfolio, experience, and communication must each be 0–100.\n- Recommendation must be APPLY, MAYBE, or SKIP.\n- Only recommend APPLY when the candidate has reasonable evidence of being able to perform the role.\n- Use MAYBE when important gaps exist but the role could still be realistic.\n- Use SKIP when major requirements are clearly outside the candidate's background.\n- If information is unavailable, return an empty string or empty array.\n- Do not invent job information.\n- Keep skill gaps specific and relevant to the job.\n- Return only the required structured output.",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        368,
+        -1328
+      ],
+      "id": "bd68a351-3ea1-4dbe-b8f2-a6d7118f24da",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this job against the candidate's Career Profile.\n\nJOB:\nTitle: {{ $json.title }}\nCompany: {{ $json.company }}\nLocation: {{ $json.location }}\nSalary: {{ $json.salary || $json.salaryText}}\nURL: {{ $json.job_url || $json.canonicalUrl }}\n\nJOB DESCRIPTION:\n{{ $json.description }}\n\nCANDIDATE CAREER PROFILE:\n{{ $('Knowledge Base').item.json.content }}\n\nReturn an objective assessment based only on the information provided.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are LerrieGPT, an AI Career Copilot.\n\nAnalyze the provided JOB against the candidate's CAREER PROFILE.\n\nThe workflow has already resolved the authoritative job source. Use the provided JOB as the source of truth for the job.\n\nThe CAREER PROFILE is the source of truth for the candidate.\n\nRules:\n- Never invent candidate experience, skills, projects, certifications, achievements, or qualifications.\n- Distinguish professional experience from projects, education, certifications, and learning.\n- Compare job requirements with the candidate's actual evidence.\n- Do not assume the candidate has a skill simply because the job requires it.\n- Identify genuine strengths and skill gaps.\n- All scores MUST be integers from 0 to 100, where 100 means an excellent match.\n- NEVER use a 1–10 scale.\n- overall, technical, portfolio, experience, and communication must each be 0–100.\n- Recommendation must be APPLY, MAYBE, or SKIP.\n- Only recommend APPLY when the candidate has reasonable evidence of being able to perform the role.\n- Use MAYBE when important gaps exist but the role could still be realistic.\n- Use SKIP when major requirements are clearly outside the candidate's background.\n- If information is unavailable, return an empty string or empty array.\n- Do not invent job information.\n- Keep skill gaps specific and relevant to the job.\n- Return only the required structured output."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        64,
+        -1136
+      ],
+      "id": "b38cc0d6-6bba-4144-922f-ee209c13090d",
+      "name": "AI Agent"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "is URL empty?": {
+      "main": [
+        [
+          {
+            "node": "Normalize Pasted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Select Scraper Actor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response back to LerrieGPT": {
+      "main": [
+        []
+      ]
+    },
+    "Select Scraper Actor": {
+      "main": [
+        [
+          {
+            "node": "Apify Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify Request": {
+      "main": [
+        [
+          {
+            "node": "Normalize Scrape",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Apify Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Data": {
+      "main": [
+        [
+          {
+            "node": "Knowledge Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Format": {
+      "main": [
+        [
+          {
+            "node": "Response back to LerrieGPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Knowledge Base": {
+      "main": [
+        [
+          {
+            "node": "is URL empty?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Scrape": {
+      "main": [
+        [
+          {
+            "node": "does scrape jobs succeed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Pasted": {
+      "main": [
+        [
+          {
+            "node": "filter description is empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "does scrape jobs succeed?": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Wait for 15 seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for 15 seconds": {
+      "main": [
+        [
+          {
+            "node": "Apify Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "filter description is empty": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        []
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Finalize Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "eff09106-1b57-4cd3-8ee7-b0184d80ed72",
+  "activeVersionId": null,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-08-12T06:27:42.103Z",
+      "createdAt": "2026-08-12T06:27:42.103Z",
+      "role": "workflow:owner",
+      "workflowId": "fU3pvnfQjtTwOzZW",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": [
+    {
+      "updatedAt": "2026-08-12T11:42:35.483Z",
+      "createdAt": "2026-08-12T11:42:35.483Z",
+      "id": "eixADrPjmKLKSvqp",
+      "name": "LerrieGPT"
+    }
+  ]
+}
