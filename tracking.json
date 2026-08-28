@@ -1,0 +1,289 @@
+{
+  "updatedAt": "2026-08-06T03:35:17.266Z",
+  "createdAt": "2026-08-06T02:26:42.651Z",
+  "id": "hfqvQtxaIYhmHh7o",
+  "name": "Tracking",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "2795020f-36bd-4e12-a8e6-aa8d3dfeafb0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -784,
+        -48
+      ],
+      "id": "7b29c99e-1813-479c-85f1-f9e5c6c7cf54",
+      "name": "Webhook",
+      "webhookId": "2795020f-36bd-4e12-a8e6-aa8d3dfeafb0"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6b9d8d9f-6910-48cf-8b79-61c88a060efc",
+              "name": "body.event",
+              "value": "={{ $json.body.event }}",
+              "type": "string"
+            },
+            {
+              "id": "cee7162f-2e6c-4c7b-80eb-2fac85c37892",
+              "name": "body.visitor_id",
+              "value": "={{ $json.body.visitor_id }}",
+              "type": "string"
+            },
+            {
+              "id": "e429117d-1bb3-49d4-9af7-4ad1d5e0912d",
+              "name": "body.page",
+              "value": "={{ $json.body.page }}",
+              "type": "string"
+            },
+            {
+              "id": "5215a8f1-a093-4f2c-ab27-02e7b163d598",
+              "name": "body.referrer",
+              "value": "={{ $json.body.referrer }}",
+              "type": "string"
+            },
+            {
+              "id": "e1a7885f-bd9e-4a03-a6f9-dddf1ffe94ed",
+              "name": "body.timestamp",
+              "value": "={{ $json.body.timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "34a732b6-0e4f-4f48-8d8e-cbf762a57b0d",
+              "name": "ip.address",
+              "value": "={{ $json.headers['true-client-ip'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -464,
+        -48
+      ],
+      "id": "6cc32272-41b7-4ad6-b8c4-1b508746004b",
+      "name": "Normalize Fields"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.event }}",
+                    "rightValue": "site_visit",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "9953a46a-09b3-4d8a-993a-237ba617acb7"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "site_visit"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a1dd8d7a-36fc-4de6-8b2c-49f0e3cfde35",
+                    "leftValue": "={{ $json.body.event }}",
+                    "rightValue": "resume_download",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "resume_download"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -240,
+        -48
+      ],
+      "id": "9b955596-9c0e-4d40-9057-7e1d616fbb8e",
+      "name": "Branch Logic"
+    },
+    {
+      "parameters": {
+        "url": "=http://ip-api.com/json/{{ $json.ip.address }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -16,
+        -144
+      ],
+      "id": "ebd55de5-42d3-4cfa-94e4-2e38d1c65db7",
+      "name": "Get Location"
+    },
+    {
+      "parameters": {
+        "sendTo": "laungayanjohnlerry@gmail.com",
+        "subject": "New visitor on your portfolio!",
+        "message": "=Summary Details\n\nApprox. Location: {{ $json.country }} | {{ $json.regionName }} | {{ $json.city }} | {{ $json.zip }}\nIP Address: {{ $json.query }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        -144
+      ],
+      "id": "cf86f1e3-ac3a-4d40-9f68-ff519d86cf9e",
+      "name": "New Visitor Notification",
+      "webhookId": "339fe4c6-dcda-4053-9470-f7ce109acf6f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "laungayanjohnlerry@gmail.com",
+        "subject": "Someone downloaded your resume!",
+        "message": "Good news, someone might interested on your work !",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        48
+      ],
+      "id": "22011424-1977-4de2-a9c2-1ecaa303b0c7",
+      "name": "Resume Download Notification",
+      "webhookId": "339fe4c6-dcda-4053-9470-f7ce109acf6f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Fields": {
+      "main": [
+        [
+          {
+            "node": "Branch Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Branch Logic": {
+      "main": [
+        [
+          {
+            "node": "Get Location",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resume Download Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Location": {
+      "main": [
+        [
+          {
+            "node": "New Visitor Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "7efad04c-a6e2-461d-9ec8-4c2898c426d5",
+  "activeVersionId": null,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-08-06T02:26:42.651Z",
+      "createdAt": "2026-08-06T02:26:42.651Z",
+      "role": "workflow:owner",
+      "workflowId": "hfqvQtxaIYhmHh7o",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": [
+    {
+      "updatedAt": "2026-08-06T03:19:29.203Z",
+      "createdAt": "2026-08-06T03:19:29.203Z",
+      "id": "97nQJZ3WvPGtBvtU",
+      "name": "portfolio"
+    }
+  ]
+}
