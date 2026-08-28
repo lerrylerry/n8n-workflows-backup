@@ -1,0 +1,640 @@
+{
+  "updatedAt": "2026-04-06T09:41:40.738Z",
+  "createdAt": "2026-03-29T02:00:15.661Z",
+  "id": "GtNLvIBQzimy0F3g",
+  "name": "Automatic SocMed Video Creator",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        96,
+        -80
+      ],
+      "id": "39a84a8a-09cf-4181-9bc3-fab544aa989b",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\"prompt\":\"<insert generated prompt here>\",\n\"videoTitle\":\"<insert generated video title here>\",\n\"videoDescription\":\"<insert generated video description here>\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        160
+      ],
+      "id": "b4b6b169-a8e5-4989-b2c8-07848bff2983",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        192,
+        160
+      ],
+      "id": "c80d5768-eb25-473f-a760-01176b9fa27a",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "follow the system prompt",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=This is a real vertical smartphone video recorded in portrait mode (9:16). The camera must be physically vertical. Do NOT simulate 9:16 by rotating horizontal footage.\n\nA hyper-realistic cinematic scene of a [MAIN CHARACTER, e.g., young man in casual clothes] standing in a empty street at night.\n\nIn front of him, a glowing portal begins to form — fire ring portal. The portal emits dynamic light, reflections, and subtle particles affecting the surroundings.\n\nThe camera slowly pushes in (cinematic dolly movement). The environment reacts — [wind, dust, light flicker, objects slightly moving].\n\nThe man hesitates briefly, then suddenly runs and jumps into the portal.\n\nAs he passes through, the camera follows seamlessly into the portal (smooth transition, no cut).\n\nInside the portal: slow-motion particle stretch.\n\nThen the new world is revealed:\n\nA breathtaking golden fantasy realm appears — highly detailed, cinematic, visually stunning. The camera continues moving forward, revealing depth, scale, and atmosphere.\n\nLighting is dramatic and immersive — [sun rays, neon glow, fog, reflections, etc.]. Add environmental motion like [flying particles, moving clouds, flowing water, glowing elements].\n\nEnd with a slow cinematic reveal shot focusing on the environment.\n\nHyper-realistic, ultra-detailed, volumetric lighting, depth of field, cinematic color grading, 4K quality.\n\nNo text, no watermark.\n\nAt the end, also generate:\n- a short, casual caption not detailing everything provide a sense of mystery, not robotic (1–2 lines, slightly cryptic or curiosity-driven)\n- at most one emoji\n- include 3–5 simple, relevant hashtags only (e.g. satisfying, oddlysatisfying, asmr, aiart, loop)\n- avoid long or spammy hashtags"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        256,
+        -80
+      ],
+      "id": "24242fbf-447e-4ca7-ba48-4f34cda2883d",
+      "name": "Generate Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n  \"type\": \"service_account\",\n  \"project_id\": \"videocontentcreator\",\n  \"private_key_id\": \"df31b4b229d0fad01351e4e02da0adca5a6ee6b6\",\n  \"client_email\": \"asmr-service-account@videocontentcreator.iam.gserviceaccount.com\",\n  \"client_id\": \"111327486540740812134\",\n  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n  \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\n  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/asmr-service-account%40videocontentcreator.iam.gserviceaccount.com\",\n  \"universe_domain\": \"googleapis.com\"\n}\n\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -80
+      ],
+      "id": "62479a12-2ae4-4854-83a1-a7cb76ec99a4",
+      "name": "Payload"
+    },
+    {
+      "parameters": {
+        "useJson": true,
+        "claimsJson": "={\n\"iss\": \"{{ $json.client_email }}\",\n\"scope\": \"https://www.googleapis.com/auth/cloud-platform\",\n\"aud\": \"https://oauth2.googleapis.com/token\",\n\"iat\": {{ Math.floor($now.toSeconds()) }},\n\"exp\": {{ Math.floor($now.plus({ seconds: 3600 }).toSeconds()) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.jwt",
+      "typeVersion": 1,
+      "position": [
+        672,
+        -80
+      ],
+      "id": "55a9f1c4-6560-497b-976a-97dda21ba8ce",
+      "name": "JWT",
+      "credentials": {
+        "jwtAuth": {
+          "id": "lr2uqAyNVLxgvpZM",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://oauth2.googleapis.com/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "urn:ietf:params:oauth:grant-type:jwt-bearer"
+            },
+            {
+              "name": "assertion",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        816,
+        -80
+      ],
+      "id": "e3d37bd2-03f0-45c8-917e-e7a522a4fa40",
+      "name": "Exchange Access for JWT Token"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://us-central1-aiplatform.googleapis.com/v1/projects/videocontentcreator/locations/us-central1/publishers/google/models/veo-3.1-fast-generate-001:predictLongRunning",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"instances\": [\n{\n\"prompt\": \"{{ $('Generate Prompt').item.json.output.prompt }}\"\n}\n],\n\"parameters\": {\n\"durationSeconds\": 8,\n\"generateAudio\": true,\n\"aspectRatio\":\"9:16\",\n\"negativePrompt\": \"UI, overlays, captions, on-screen buttons, phone interface, subtitles, mentions\"\n}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        960,
+        -80
+      ],
+      "id": "75e8a627-a20a-44ee-8523-9cd9c749726b",
+      "name": "Generate Video"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://us-central1-aiplatform.googleapis.com/v1/projects/videocontentcreator/locations/us-central1/publishers/google/models/veo-3.1-fast-generate-001:fetchPredictOperation",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Exchange Access for JWT Token').item.json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "operationName",
+              "value": "={{ $('Generate Video').item.json.name }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1248,
+        -80
+      ],
+      "id": "22325251-2c28-4315-914a-bd871233227f",
+      "name": "Get Generated Video"
+    },
+    {
+      "parameters": {
+        "amount": 60
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        -80
+      ],
+      "id": "d0750865-7678-4967-8d29-a9d36dc5444f",
+      "name": "Wait",
+      "webhookId": "5e510ac3-70a0-40ae-a073-a9bf2d3402fc"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "body.response.videos[0].bytesBase64Encoded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1904,
+        -64
+      ],
+      "id": "a0d7e157-db6b-4b63-841c-d2dd6785c9f7",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "upload",
+        "title": "={{ $('Generate Prompt').item.json.output.videoTitle }}",
+        "regionCode": "PH",
+        "categoryId": "23",
+        "options": {
+          "description": "={{ $('Generate Prompt').item.json.output.videoDescription }}",
+          "privacyStatus": "public"
+        }
+      },
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        -80
+      ],
+      "id": "c0bb1ba1-903e-4872-b6c9-cc0377c308a0",
+      "name": "Upload a video",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "vVcJ8ytrtbdyWDjH",
+          "name": "YouTube account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "966f9d35-aead-4034-9c10-8dbc95c40715",
+              "leftValue": "={{ $json.body.done }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1392,
+        -80
+      ],
+      "id": "8960477a-cb5d-4a05-9ecf-83ad27639a68",
+      "name": "is Done?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "02f27fcc-0930-410a-ad73-e05aecbf43ee",
+              "leftValue": "={{ $json.body.response.raiMediaFilteredCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1552,
+        -64
+      ],
+      "id": "0083ae6d-8010-4fbd-85ed-83502635b44b",
+      "name": "no violation?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "09ba41fd-f78e-427f-8b99-85a7d68b755a",
+              "leftValue": "={{ $json.body.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1728,
+        -32
+      ],
+      "id": "180a7ed5-b2a6-4c73-b40e-746ec7ccbd9b",
+      "name": "have errors?"
+    },
+    {
+      "parameters": {
+        "hostUrl": "graph-video.facebook.com",
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v23.0",
+        "node": "me",
+        "edge": "videos",
+        "sendBinaryData": true,
+        "binaryPropertyName": "data",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "description",
+                "value": "={{ $('Generate Prompt').item.json.output.videoDescription }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        96
+      ],
+      "id": "17416037-7590-4ecb-a689-c231144dd0c7",
+      "name": "Facebook Graph API"
+    },
+    {
+      "parameters": {
+        "name": "=",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Pr6YXYZ-NqxEt2g_LSVHiX4Pke0wtlRi",
+          "mode": "list",
+          "cachedResultName": "Day 1 - Portal",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1Pr6YXYZ-NqxEt2g_LSVHiX4Pke0wtlRi"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2144,
+        -272
+      ],
+      "id": "7567bf81-a06e-40e0-b5b2-340dde96d3aa",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "MrsSV3Gv3Q9wjty9",
+          "name": "Google Drive account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Generate Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Prompt",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Prompt",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Prompt": {
+      "main": [
+        [
+          {
+            "node": "Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload": {
+      "main": [
+        [
+          {
+            "node": "JWT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JWT": {
+      "main": [
+        [
+          {
+            "node": "Exchange Access for JWT Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exchange Access for JWT Token": {
+      "main": [
+        [
+          {
+            "node": "Generate Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Video": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Generated Video": {
+      "main": [
+        [
+          {
+            "node": "is Done?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get Generated Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "is Done?": {
+      "main": [
+        [
+          {
+            "node": "no violation?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "no violation?": {
+      "main": [
+        [
+          {
+            "node": "have errors?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "have errors?": {
+      "main": [
+        [
+          {
+            "node": "Generate Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "62607731-71a9-4283-bdb7-4d1b3647a5f2",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-03-29T02:00:15.661Z",
+      "createdAt": "2026-03-29T02:00:15.661Z",
+      "role": "workflow:owner",
+      "workflowId": "GtNLvIBQzimy0F3g",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
