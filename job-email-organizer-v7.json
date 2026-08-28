@@ -1,0 +1,1878 @@
+{
+  "updatedAt": "2026-06-24T04:54:30.431Z",
+  "createdAt": "2026-06-04T02:10:40.552Z",
+  "id": "5jsQq9GGnwo3GZBq",
+  "name": "Job Email Organizer v7",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this incoming email:\nFrom: {{ $('Email Content').item.json.from }}\nSubject: {{ $('Email Content').item.json.subject }}\nBody: {{ $('Email Content').item.json.body }}\n",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "You are an expert email analysis assistant. Your sole task is to analyze incoming emails and classify them based on their relevance to job opportunities.\n\nYou will evaluate the provided email Subject, Body, and Sender. You must categorize the email into one of these seven exact categories:\n1. \"Indeed\" - Emails explicitly from or related to the Indeed job platform.\n2. \"OLJ\" - Emails explicitly from or related to OnlineJobs.ph.\n3. \"LinkedIn\" - Emails explicitly from or related to LinkedIn.\n4. \"JobStreet\" - Emails explicitly from or related to JobStreet.\n5. \"Upwork\" - Emails explicitly from or related to Upwork.\n6. \"Other Job\" - Legit job applications, offers, or career alerts from other platforms or direct employers.\n7. \"not related job\" - Personal emails, spam, newsletters, receipts, or anything completely unrelated to professional employment.\n\nOUTPUT FORMAT:\nYou must output your analysis strictly as a JSON object matching the requested schema. Do not include any conversational text, markdown blocks, or explanations outside the JSON.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        432,
+        -128
+      ],
+      "id": "2c5ea30a-ac67-4984-95f1-2a474ba5d3d2",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "395a5353-1c4a-43c2-bc7c-e84c2736b0ef",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "4bb863e2-dc02-4372-8395-9c9b9fc67e9b",
+              "name": "threadId",
+              "value": "={{ $json.threadId }}",
+              "type": "string"
+            },
+            {
+              "id": "9be98991-3d99-4aba-9c01-bdf0c8cecfa3",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "b4fe3896-1676-49be-bed3-e91c7b9d91ff",
+              "name": "body",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "667ee1a3-5c37-402e-8f35-8c95de8e41b3",
+              "name": "from",
+              "value": "={{ $json.from.value[0].address }}",
+              "type": "string"
+            },
+            {
+              "id": "5430b51e-e6be-46b5-91d0-443069d5449d",
+              "name": "to",
+              "value": "={{ $json.to.value[0].address }}",
+              "type": "string"
+            },
+            {
+              "id": "393f1169-ddcb-4e58-bede-1353efd21d6f",
+              "name": "date",
+              "value": "={{ $json.date }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -48,
+        -128
+      ],
+      "id": "75fed1bf-e446-4da6-8047-d0db0e503c16",
+      "name": "Email Content",
+      "notesInFlow": true,
+      "notes": "Normalize Data"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"subject\": {\n      \"type\": \"string\",\n      \"description\": \"The original subject line of the analyzed email.\"\n    },\n    \"summary\": {\n      \"type\": \"string\",\n      \"description\": \"A concise, 1-2 sentence summary of the email content or the job role details.\"\n    },\n    \"from\": {\n      \"type\": \"string\",\n      \"description\": \"The sender's name and email address extracted from the input data.\"\n    },\n    \"category\": {\n      \"type\": \"string\",\n      \"enum\": [\"Indeed\", \"OLJ\", \"LinkedIn\", \"JobStreet\", \"Upwork\", \"Other Job\", \"Not Related Job\"],\n      \"description\": \"The strict classification of the email based on its source and content.\"\n    },\n    \"ai_confidence\": {\n      \"type\": \"integer\",\n      \"minimum\": 0,\n      \"maximum\": 100,\n      \"description\": \"The model's confidence score for the extraction and classification, represented as a percentage from 0 to 100.\"\n    },\n    \"ai_reason\": {\n      \"type\": \"string\",\n      \"description\": \"A concise, single-sentence summary justifying exactly why the chosen category and confidence score were assigned based on key elements found in the email text.\"\n    }\n  },\n  \"required\": [\"subject\", \"summary\", \"from\", \"category\", \"ai_confidence\", \"ai_reason\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        656,
+        96
+      ],
+      "id": "1b5c67ef-0416-454b-a60f-402b2ce0dc36",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "chatId": "-1003875445905",
+        "text": "=🔔 <b>New Notification Received</b>\n📅 {{ DateTime.fromISO($('Email Content').item.json.date).setZone('Asia/Manila').toFormat('MMMM d, yyyy h:mm a') }}\n\n📌 <b>Email Classification</b>\n• <b>Category:</b> {{ $('AI Agent').item.json.output.category }}\n• <b>From:</b> <code>{{ $('AI Agent').item.json.output.from }}</code>\n• <b>Subject:</b> {{ $('AI Agent').item.json.output.subject }}\n\n📝 <b>Summary</b>\n{{ $('AI Agent').item.json.output.summary }}\n\n===============================\n\n⚙️ <b>System Meta</b>\n• <b>AI Confidence:</b> {{ $('AI Agent').item.json.output.ai_confidence }}%\n• <b>AI Reason:</b> <i>{{ $('AI Agent').item.json.output.ai_reason }}</i>\n\n🔗 <a href=\"https://mail.google.com/mail/u/0/#inbox/{{ $('Email Content').item.json.id }}\">Open Gmail Message</a>\n",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1088,
+        -224
+      ],
+      "id": "b423769c-ea3f-4466-a105-5a258f053c24",
+      "name": "Send message in the Job Email Watcher",
+      "webhookId": "3167ada8-f342-4959-aa0d-4860d2cba385",
+      "notesInFlow": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "sxJ5EL7mfUrwZ2n3",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Notifications"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1WbSfIzU3pTSvfGw8DrhYanTuRjm5J70ParjxL3udLcI",
+          "mode": "list",
+          "cachedResultName": "Dummy Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WbSfIzU3pTSvfGw8DrhYanTuRjm5J70ParjxL3udLcI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 126024726,
+          "mode": "list",
+          "cachedResultName": "Job Email Watcher Logging",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WbSfIzU3pTSvfGw8DrhYanTuRjm5J70ParjxL3udLcI/edit#gid=126024726"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Thread ID": "={{ $('Email Content').item.json.threadId }}",
+            "Subject": "={{ $('Email Content').item.json.subject }}",
+            "Body": "={{ $('Email Content').item.json.body }}",
+            "From": "={{ $('Email Content').item.json.from }}",
+            "To": "={{ $('Email Content').item.json.to }}",
+            "Date": "={{ $('Email Content').item.json.date }}",
+            "Summary": "={{ $('AI Agent').item.json.output.summary }}",
+            "Email Link": "=https://mail.google.com/mail/u/0/#inbox/{{ $('Email Content').item.json.id }}",
+            "Category": "={{ $('AI Agent').item.json.output.category }}",
+            "AI Confidence": "={{ $('AI Agent').item.json.output.ai_confidence }}",
+            "AI Reason": "={{ $('AI Agent').item.json.output.ai_reason }}"
+          },
+          "matchingColumns": [
+            "Thread ID"
+          ],
+          "schema": [
+            {
+              "id": "Thread ID",
+              "displayName": "Thread ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Body",
+              "displayName": "Body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "From",
+              "displayName": "From",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "To",
+              "displayName": "To",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Confidence",
+              "displayName": "AI Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Reason",
+              "displayName": "AI Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email Link",
+              "displayName": "Email Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1536,
+        -224
+      ],
+      "id": "4c53dba5-cbe8-4494-a46e-0704baabe625",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "maxTokensToSample": 1000,
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        400,
+        96
+      ],
+      "id": "8b9af1f7-c5f8-4710-94d2-460a92925489",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "d6n4kXVbqtL1sRxp",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 60
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        176,
+        -128
+      ],
+      "id": "30e8d4ac-4c2d-477e-8aa8-87ba05d312aa",
+      "name": "Wait",
+      "webhookId": "d09d8ca1-737e-48ae-ad1a-f855b728f67b"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        528,
+        96
+      ],
+      "id": "7d8899c5-2db5-40d7-a838-c9d6ad6630fb",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1003777945488",
+        "text": "=🚨 *CRITICAL WORKFLOW ALERT* 🚨\n\n*What happened:*\nAn incoming email could not be processed because the AI provider hit its rate limit. \n\n*Details:*\n• *Node:* AI Agent\n• *Impact:* Process Paused\n• *Recommendation:* Check Groq API usage dashboard.\n",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        -32
+      ],
+      "id": "9d67e839-4691-4eac-a442-123ca6620f5d",
+      "name": "Send Error Message",
+      "webhookId": "bab3d569-2bd9-4a6a-b58d-1c06f3ba3261",
+      "notesInFlow": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "sxJ5EL7mfUrwZ2n3",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Error Log"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Email Content').item.json.id }}",
+        "labelIds": "={{ \n[({\n\"Indeed\":\"Label_6021566868751488107\",\n\"JobStreet\":\"Label_7876735455574790704\",\n\"LinkedIn\":\"Label_1136275101210797651\",\n\"OLJ\":\"Label_2656532595534555936\",\n\"Other Job\":\"Label_3999564652529266543\",\n\"Upwork\":\"Label_6006287098725185065\"})\n[$('AI Agent').item.json.output.category.trim()\n]] \n}}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1312,
+        -224
+      ],
+      "id": "2b7bb540-01a2-46ce-85e9-e2a8ae0f6e77",
+      "name": "Moved Label",
+      "webhookId": "0e20e67f-bf63-4f20-bda0-2bf4f789bef2",
+      "notesInFlow": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      },
+      "notes": "Sort the message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "81c60c32-9220-4fb9-b0ea-efb034f72962",
+              "leftValue": "={{ $json.output.category }}",
+              "rightValue": "Not Related Job",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        864,
+        -224
+      ],
+      "id": "b12c384a-cee1-4bbf-8a0d-4851895c0309",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -544,
+        784
+      ],
+      "id": "47d99f83-7fbb-461e-87b5-f36fe0df59e9",
+      "name": "New Message Received1",
+      "notesInFlow": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      },
+      "notes": "Email Trigger"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org\",\n  \"title\": \"EmailAnalysisSchema\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"category\": {\n      \"type\": \"string\",\n      \"enum\": [\"JOB_OFFER\", \"FOLLOW_UP_PROCEDURE\", \"REJECTION\", \"UNKNOWN\"],\n      \"description\": \"The classified status of the incoming recruitment email.\"\n    },\n    \"confidence_score\": {\n      \"type\": \"number\",\n      \"minimum\": 0.0,\n      \"maximum\": 1.0,\n      \"description\": \"Confidence score of the classification from 0.0 to 1.0.\"\n    },\n    \"sender_company\": {\n      \"type\": \"string\",\n      \"default\": \"Unknown\",\n      \"description\": \"The name of the company sending the email, or 'Unknown' if not found.\"\n    },\n    \"job_title\": {\n      \"type\": \"string\",\n      \"default\": \"Unknown\",\n      \"description\": \"The job role mentioned in the email, or 'Unknown' if not found.\"\n    },\n    \"next_action_required\": {\n      \"type\": \"boolean\",\n      \"description\": \"True if the candidate needs to reply, schedule, or complete a task. False otherwise.\"\n    },\n    \"deadline\": {\n      \"type\": \"string\",\n      \"default\": \"None\",\n      \"description\": \"The explicit deadline mentioned in YYYY-MM-DD format, or 'None'.\"\n    },\n    \"summary\": {\n      \"type\": \"string\",\n      \"description\": \"A single-sentence summary of the email context.\"\n    }\n  },\n  \"required\": [\n    \"category\",\n    \"confidence_score\",\n    \"sender_company\",\n    \"job_title\",\n    \"next_action_required\",\n    \"deadline\",\n    \"summary\"\n  ]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        432,
+        1056
+      ],
+      "id": "b1af708f-5d51-4e3d-9717-ba2bba02e8bb",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "chatId": "-1003875445905",
+        "text": "=🔔 <b>New Notification Received</b>\n📅 {{ DateTime.fromISO($('Clean Data').item.json.date).setZone('Asia/Manila').toFormat('MMMM d, yyyy h:mm a') }}\n\n📌 <b>Email Classification</b>\n• <b>Category:</b> {{ $('Email Assistant').item.json.output.category }}\n• <b>From:</b> <code>{{ $('Email Assistant').item.json.output.from }}</code>\n• <b>Subject:</b> {{ $('Email Assistant').item.json.output.subject }}\n\n📝 <b>Summary</b>\n{{ $('Email Assistant').item.json.output.summary }}\n\n===============================\n\n⚙️ <b>System Meta</b>\n• <b>AI Confidence:</b> {{ $('Email Assistant').item.json.output.confidence_score }}\n\n🔗 <a href=\"https://mail.google.com/mail/u/0/#inbox/{{ $('Clean Data').item.json.id }}\">Open Gmail Message</a>\n",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        912,
+        720
+      ],
+      "id": "b05bb5f9-c5e8-4d70-9d19-d51805fdbb7f",
+      "name": "Send message in the Job Email Watcher1",
+      "webhookId": "3167ada8-f342-4959-aa0d-4860d2cba385",
+      "notesInFlow": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "sxJ5EL7mfUrwZ2n3",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Notifications"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "maxTokensToSample": 1000,
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        96,
+        1040
+      ],
+      "id": "2b1c7b30-8c55-4255-ac56-39c6373e18d3",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "d6n4kXVbqtL1sRxp",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        272,
+        1040
+      ],
+      "id": "d130cc18-1366-4e36-9990-d797b5b1cd81",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1003777945488",
+        "text": "=🚨 *CRITICAL WORKFLOW ALERT* 🚨\n\n*What happened:*\nAn incoming email could not be processed because the AI provider hit its rate limit. \n\n*Details:*\n• *Node:* AI Agent\n• *Impact:* Process Paused\n• *Recommendation:* Check Groq API usage dashboard.\n",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        912
+      ],
+      "id": "f9ce865d-1a44-4072-9f81-f3808a8122a6",
+      "name": "Send Error Message1",
+      "webhookId": "bab3d569-2bd9-4a6a-b58d-1c06f3ba3261",
+      "notesInFlow": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "sxJ5EL7mfUrwZ2n3",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Error Log"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this incoming email:\nFrom: {{ $('Clean Data').item.json.from }}\nSubject: {{ $('Clean Data').item.json.subject }}\nBody: {{ $('Clean Data').item.json.body }}\n",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "You are an expert AI Job Application Analyzer and Email Assistant. Your sole task is to analyze incoming emails and categorize them into exactly one of three categories, then extract key details.\n\n### CATEGORY DEFINITIONS\n1. JOB_OFFER: The company is offering the candidate employment, sending a contract, or extending a formal job offer.\n2. FOLLOW_UP_PROCEDURE: The company is requesting further action. This includes invitations to interviews, coding tests, scheduling links, or requests for additional documents.\n3. REJECTION: The company has decided not to move forward with the application.\n4. UNKNOWN: The email does not clearly fit into any of the three categories above (e.g., general inquiries, networking, spam, or automated acknowledgments).\n\n### OUTPUT FORMAT\nYou must respond ONLY with a JSON object. Do not include markdown formatting, code blocks, or conversational text. Use this exact structure:\n\n{\n  \"category\": \"JOB_OFFER\" | \"FOLLOW_UP_PROCEDURE\" | \"REJECTION\" | \"UNKNOWN\",\n  \"confidence_score\": 0.0 to 1.0,\n  \"sender_company\": \"Company Name\" | \"Unknown\",\n  \"job_title\": \"Job Title\" | \"Unknown\",\n  \"next_action_required\": true/false,\n  \"deadline\": \"YYYY-MM-DD\" | \"None\",\n  \"summary\": \"A 1-sentence summary of the email context.\"\n}\n\n### ANALYSIS RULES\n- Read the entire email body carefully before deciding.\n- If an email contains mixed signals, prioritize the latest definitive status.\n- Be objective and strictly base your data extraction on the text provided.\n\n\nOUTPUT FORMAT:\nYou must output your analysis strictly as a JSON object matching the requested schema. Do not include any conversational text, markdown blocks, or explanations outside the JSON.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        160,
+        784
+      ],
+      "id": "7c02f4ac-a093-472a-b1f7-8e9bfe7f5908",
+      "name": "Email Assistant",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "395a5353-1c4a-43c2-bc7c-e84c2736b0ef",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "4bb863e2-dc02-4372-8395-9c9b9fc67e9b",
+              "name": "threadId",
+              "value": "={{ $json.threadId }}",
+              "type": "string"
+            },
+            {
+              "id": "9be98991-3d99-4aba-9c01-bdf0c8cecfa3",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "b4fe3896-1676-49be-bed3-e91c7b9d91ff",
+              "name": "body",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "667ee1a3-5c37-402e-8f35-8c95de8e41b3",
+              "name": "from",
+              "value": "={{ $json.from.value[0].address }}",
+              "type": "string"
+            },
+            {
+              "id": "5430b51e-e6be-46b5-91d0-443069d5449d",
+              "name": "to",
+              "value": "={{ $json.to.value[0].address }}",
+              "type": "string"
+            },
+            {
+              "id": "393f1169-ddcb-4e58-bede-1353efd21d6f",
+              "name": "date",
+              "value": "={{ $json.date }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -320,
+        784
+      ],
+      "id": "9b3dccfe-c889-4eb2-8092-083d543935eb",
+      "name": "Clean Data",
+      "notesInFlow": true,
+      "notes": "Normalize Data"
+    },
+    {
+      "parameters": {
+        "amount": 60
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -96,
+        784
+      ],
+      "id": "40d26271-b9d8-4711-9d1a-cc67acb62855",
+      "name": "Rate Limitter",
+      "webhookId": "d09d8ca1-737e-48ae-ad1a-f855b728f67b"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "81c60c32-9220-4fb9-b0ea-efb034f72962",
+              "leftValue": "={{ $json.output.category }}",
+              "rightValue": "UNKNOWN",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        608,
+        720
+      ],
+      "id": "49f84989-d73b-4fb3-9583-040000c92567",
+      "name": "FIlter"
+    }
+  ],
+  "connections": {
+    "Email Content": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message in the Job Email Watcher": {
+      "main": [
+        [
+          {
+            "node": "Moved Label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Moved Label": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Send message in the Job Email Watcher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Message Received1": {
+      "main": [
+        [
+          {
+            "node": "Clean Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Email Assistant",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message in the Job Email Watcher1": {
+      "main": [
+        []
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Email Assistant",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Email Assistant",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Email Assistant": {
+      "main": [
+        [
+          {
+            "node": "FIlter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Data": {
+      "main": [
+        [
+          {
+            "node": "Rate Limitter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate Limitter": {
+      "main": [
+        [
+          {
+            "node": "Email Assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FIlter": {
+      "main": [
+        [
+          {
+            "node": "Send message in the Job Email Watcher1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:New Message Received": {
+      "New Message Received": {
+        "lastTimeChecked": 1781570812,
+        "possibleDuplicates": [
+          "19ecde53ad1a219e",
+          "19eccdf50a8a0eb5"
+        ]
+      }
+    },
+    "node:New Message Received1": {
+      "New Message Received1": {
+        "lastTimeChecked": 1787892621,
+        "possibleDuplicates": [
+          "1a046b460d20fc7a"
+        ]
+      }
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "0170839b-6aef-4add-ae5f-7b0bb1384429",
+  "activeVersionId": "0170839b-6aef-4add-ae5f-7b0bb1384429",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-06-04T02:10:40.552Z",
+      "createdAt": "2026-06-04T02:10:40.552Z",
+      "role": "workflow:owner",
+      "workflowId": "5jsQq9GGnwo3GZBq",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-08-06T10:41:18.017Z",
+    "createdAt": "2026-06-24T04:54:30.527Z",
+    "versionId": "0170839b-6aef-4add-ae5f-7b0bb1384429",
+    "workflowId": "5jsQq9GGnwo3GZBq",
+    "nodes": [
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Analyze this incoming email:\nFrom: {{ $('Email Content').item.json.from }}\nSubject: {{ $('Email Content').item.json.subject }}\nBody: {{ $('Email Content').item.json.body }}\n",
+          "hasOutputParser": true,
+          "needsFallback": true,
+          "options": {
+            "systemMessage": "You are an expert email analysis assistant. Your sole task is to analyze incoming emails and classify them based on their relevance to job opportunities.\n\nYou will evaluate the provided email Subject, Body, and Sender. You must categorize the email into one of these seven exact categories:\n1. \"Indeed\" - Emails explicitly from or related to the Indeed job platform.\n2. \"OLJ\" - Emails explicitly from or related to OnlineJobs.ph.\n3. \"LinkedIn\" - Emails explicitly from or related to LinkedIn.\n4. \"JobStreet\" - Emails explicitly from or related to JobStreet.\n5. \"Upwork\" - Emails explicitly from or related to Upwork.\n6. \"Other Job\" - Legit job applications, offers, or career alerts from other platforms or direct employers.\n7. \"not related job\" - Personal emails, spam, newsletters, receipts, or anything completely unrelated to professional employment.\n\nOUTPUT FORMAT:\nYou must output your analysis strictly as a JSON object matching the requested schema. Do not include any conversational text, markdown blocks, or explanations outside the JSON.\n"
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3.1,
+        "position": [
+          432,
+          -128
+        ],
+        "id": "2c5ea30a-ac67-4984-95f1-2a474ba5d3d2",
+        "name": "AI Agent",
+        "retryOnFail": true,
+        "waitBetweenTries": 5000,
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "395a5353-1c4a-43c2-bc7c-e84c2736b0ef",
+                "name": "id",
+                "value": "={{ $json.id }}",
+                "type": "string"
+              },
+              {
+                "id": "4bb863e2-dc02-4372-8395-9c9b9fc67e9b",
+                "name": "threadId",
+                "value": "={{ $json.threadId }}",
+                "type": "string"
+              },
+              {
+                "id": "9be98991-3d99-4aba-9c01-bdf0c8cecfa3",
+                "name": "subject",
+                "value": "={{ $json.subject }}",
+                "type": "string"
+              },
+              {
+                "id": "b4fe3896-1676-49be-bed3-e91c7b9d91ff",
+                "name": "body",
+                "value": "={{ $json.text }}",
+                "type": "string"
+              },
+              {
+                "id": "667ee1a3-5c37-402e-8f35-8c95de8e41b3",
+                "name": "from",
+                "value": "={{ $json.from.value[0].address }}",
+                "type": "string"
+              },
+              {
+                "id": "5430b51e-e6be-46b5-91d0-443069d5449d",
+                "name": "to",
+                "value": "={{ $json.to.value[0].address }}",
+                "type": "string"
+              },
+              {
+                "id": "393f1169-ddcb-4e58-bede-1353efd21d6f",
+                "name": "date",
+                "value": "={{ $json.date }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -48,
+          -128
+        ],
+        "id": "75fed1bf-e446-4da6-8047-d0db0e503c16",
+        "name": "Email Content",
+        "notesInFlow": true,
+        "notes": "Normalize Data"
+      },
+      {
+        "parameters": {
+          "schemaType": "manual",
+          "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"subject\": {\n      \"type\": \"string\",\n      \"description\": \"The original subject line of the analyzed email.\"\n    },\n    \"summary\": {\n      \"type\": \"string\",\n      \"description\": \"A concise, 1-2 sentence summary of the email content or the job role details.\"\n    },\n    \"from\": {\n      \"type\": \"string\",\n      \"description\": \"The sender's name and email address extracted from the input data.\"\n    },\n    \"category\": {\n      \"type\": \"string\",\n      \"enum\": [\"Indeed\", \"OLJ\", \"LinkedIn\", \"JobStreet\", \"Upwork\", \"Other Job\", \"Not Related Job\"],\n      \"description\": \"The strict classification of the email based on its source and content.\"\n    },\n    \"ai_confidence\": {\n      \"type\": \"integer\",\n      \"minimum\": 0,\n      \"maximum\": 100,\n      \"description\": \"The model's confidence score for the extraction and classification, represented as a percentage from 0 to 100.\"\n    },\n    \"ai_reason\": {\n      \"type\": \"string\",\n      \"description\": \"A concise, single-sentence summary justifying exactly why the chosen category and confidence score were assigned based on key elements found in the email text.\"\n    }\n  },\n  \"required\": [\"subject\", \"summary\", \"from\", \"category\", \"ai_confidence\", \"ai_reason\"]\n}"
+        },
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "typeVersion": 1.3,
+        "position": [
+          656,
+          96
+        ],
+        "id": "1b5c67ef-0416-454b-a60f-402b2ce0dc36",
+        "name": "Structured Output Parser"
+      },
+      {
+        "parameters": {
+          "chatId": "-1003875445905",
+          "text": "=🔔 <b>New Notification Received</b>\n📅 {{ DateTime.fromISO($('Email Content').item.json.date).setZone('Asia/Manila').toFormat('MMMM d, yyyy h:mm a') }}\n\n📌 <b>Email Classification</b>\n• <b>Category:</b> {{ $('AI Agent').item.json.output.category }}\n• <b>From:</b> <code>{{ $('AI Agent').item.json.output.from }}</code>\n• <b>Subject:</b> {{ $('AI Agent').item.json.output.subject }}\n\n📝 <b>Summary</b>\n{{ $('AI Agent').item.json.output.summary }}\n\n===============================\n\n⚙️ <b>System Meta</b>\n• <b>AI Confidence:</b> {{ $('AI Agent').item.json.output.ai_confidence }}%\n• <b>AI Reason:</b> <i>{{ $('AI Agent').item.json.output.ai_reason }}</i>\n\n🔗 <a href=\"https://mail.google.com/mail/u/0/#inbox/{{ $('Email Content').item.json.id }}\">Open Gmail Message</a>\n",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1088,
+          -224
+        ],
+        "id": "b423769c-ea3f-4466-a105-5a258f053c24",
+        "name": "Send message in the Job Email Watcher",
+        "webhookId": "3167ada8-f342-4959-aa0d-4860d2cba385",
+        "notesInFlow": true,
+        "credentials": {
+          "telegramApi": {
+            "id": "sxJ5EL7mfUrwZ2n3",
+            "name": "Telegram account"
+          }
+        },
+        "notes": "Notifications"
+      },
+      {
+        "parameters": {
+          "operation": "appendOrUpdate",
+          "documentId": {
+            "__rl": true,
+            "value": "1WbSfIzU3pTSvfGw8DrhYanTuRjm5J70ParjxL3udLcI",
+            "mode": "list",
+            "cachedResultName": "Dummy Sheet",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WbSfIzU3pTSvfGw8DrhYanTuRjm5J70ParjxL3udLcI/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": 126024726,
+            "mode": "list",
+            "cachedResultName": "Job Email Watcher Logging",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WbSfIzU3pTSvfGw8DrhYanTuRjm5J70ParjxL3udLcI/edit#gid=126024726"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Thread ID": "={{ $('Email Content').item.json.threadId }}",
+              "Subject": "={{ $('Email Content').item.json.subject }}",
+              "Body": "={{ $('Email Content').item.json.body }}",
+              "From": "={{ $('Email Content').item.json.from }}",
+              "To": "={{ $('Email Content').item.json.to }}",
+              "Date": "={{ $('Email Content').item.json.date }}",
+              "Summary": "={{ $('AI Agent').item.json.output.summary }}",
+              "Email Link": "=https://mail.google.com/mail/u/0/#inbox/{{ $('Email Content').item.json.id }}",
+              "Category": "={{ $('AI Agent').item.json.output.category }}",
+              "AI Confidence": "={{ $('AI Agent').item.json.output.ai_confidence }}",
+              "AI Reason": "={{ $('AI Agent').item.json.output.ai_reason }}"
+            },
+            "matchingColumns": [
+              "Thread ID"
+            ],
+            "schema": [
+              {
+                "id": "Thread ID",
+                "displayName": "Thread ID",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Subject",
+                "displayName": "Subject",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Body",
+                "displayName": "Body",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "From",
+                "displayName": "From",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "To",
+                "displayName": "To",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Date",
+                "displayName": "Date",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Category",
+                "displayName": "Category",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Summary",
+                "displayName": "Summary",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "AI Confidence",
+                "displayName": "AI Confidence",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "AI Reason",
+                "displayName": "AI Reason",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "Email Link",
+                "displayName": "Email Link",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          1536,
+          -224
+        ],
+        "id": "4c53dba5-cbe8-4494-a46e-0704baabe625",
+        "name": "Append or update row in sheet",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "zWeRJ4aWcg6nma7o",
+            "name": "Google Sheets account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "model": "llama-3.3-70b-versatile",
+          "options": {
+            "maxTokensToSample": 1000,
+            "temperature": 0
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+        "typeVersion": 1,
+        "position": [
+          400,
+          96
+        ],
+        "id": "8b9af1f7-c5f8-4710-94d2-460a92925489",
+        "name": "Groq Chat Model",
+        "credentials": {
+          "groqApi": {
+            "id": "d6n4kXVbqtL1sRxp",
+            "name": "Groq account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "amount": 60
+        },
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          176,
+          -128
+        ],
+        "id": "30e8d4ac-4c2d-477e-8aa8-87ba05d312aa",
+        "name": "Wait",
+        "webhookId": "d09d8ca1-737e-48ae-ad1a-f855b728f67b"
+      },
+      {
+        "parameters": {
+          "options": {
+            "temperature": 0
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "typeVersion": 1,
+        "position": [
+          528,
+          96
+        ],
+        "id": "7d8899c5-2db5-40d7-a838-c9d6ad6630fb",
+        "name": "Google Gemini Chat Model",
+        "credentials": {
+          "googlePalmApi": {
+            "id": "DfL2oENEvtoz48DF",
+            "name": "Google Gemini(PaLM) Api account 2"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "chatId": "-1003777945488",
+          "text": "=🚨 *CRITICAL WORKFLOW ALERT* 🚨\n\n*What happened:*\nAn incoming email could not be processed because the AI provider hit its rate limit. \n\n*Details:*\n• *Node:* AI Agent\n• *Impact:* Process Paused\n• *Recommendation:* Check Groq API usage dashboard.\n",
+          "additionalFields": {
+            "parse_mode": "HTML"
+          }
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          864,
+          -32
+        ],
+        "id": "9d67e839-4691-4eac-a442-123ca6620f5d",
+        "name": "Send Error Message",
+        "webhookId": "bab3d569-2bd9-4a6a-b58d-1c06f3ba3261",
+        "notesInFlow": true,
+        "credentials": {
+          "telegramApi": {
+            "id": "sxJ5EL7mfUrwZ2n3",
+            "name": "Telegram account"
+          }
+        },
+        "notes": "Error Log"
+      },
+      {
+        "parameters": {
+          "operation": "addLabels",
+          "messageId": "={{ $('Email Content').item.json.id }}",
+          "labelIds": "={{ \n[({\n\"Indeed\":\"Label_6021566868751488107\",\n\"JobStreet\":\"Label_7876735455574790704\",\n\"LinkedIn\":\"Label_1136275101210797651\",\n\"OLJ\":\"Label_2656532595534555936\",\n\"Other Job\":\"Label_3999564652529266543\",\n\"Upwork\":\"Label_6006287098725185065\"})\n[$('AI Agent').item.json.output.category.trim()\n]] \n}}"
+        },
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.2,
+        "position": [
+          1312,
+          -224
+        ],
+        "id": "2b7bb540-01a2-46ce-85e9-e2a8ae0f6e77",
+        "name": "Moved Label",
+        "webhookId": "0e20e67f-bf63-4f20-bda0-2bf4f789bef2",
+        "notesInFlow": true,
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "alfRaVzVQ7RLfgNz",
+            "name": "Gmail account"
+          }
+        },
+        "notes": "Sort the message"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "81c60c32-9220-4fb9-b0ea-efb034f72962",
+                "leftValue": "={{ $json.output.category }}",
+                "rightValue": "Not Related Job",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEquals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.3,
+        "position": [
+          864,
+          -224
+        ],
+        "id": "b12c384a-cee1-4bbf-8a0d-4851895c0309",
+        "name": "Filter"
+      },
+      {
+        "parameters": {
+          "pollTimes": {
+            "item": [
+              {
+                "mode": "everyMinute"
+              }
+            ]
+          },
+          "simple": false,
+          "filters": {
+            "readStatus": "unread"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.gmailTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          -544,
+          784
+        ],
+        "id": "47d99f83-7fbb-461e-87b5-f36fe0df59e9",
+        "name": "New Message Received1",
+        "notesInFlow": true,
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "alfRaVzVQ7RLfgNz",
+            "name": "Gmail account"
+          }
+        },
+        "notes": "Email Trigger"
+      },
+      {
+        "parameters": {
+          "schemaType": "manual",
+          "inputSchema": "{\n  \"$schema\": \"http://json-schema.org\",\n  \"title\": \"EmailAnalysisSchema\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"category\": {\n      \"type\": \"string\",\n      \"enum\": [\"JOB_OFFER\", \"FOLLOW_UP_PROCEDURE\", \"REJECTION\", \"UNKNOWN\"],\n      \"description\": \"The classified status of the incoming recruitment email.\"\n    },\n    \"confidence_score\": {\n      \"type\": \"number\",\n      \"minimum\": 0.0,\n      \"maximum\": 1.0,\n      \"description\": \"Confidence score of the classification from 0.0 to 1.0.\"\n    },\n    \"sender_company\": {\n      \"type\": \"string\",\n      \"default\": \"Unknown\",\n      \"description\": \"The name of the company sending the email, or 'Unknown' if not found.\"\n    },\n    \"job_title\": {\n      \"type\": \"string\",\n      \"default\": \"Unknown\",\n      \"description\": \"The job role mentioned in the email, or 'Unknown' if not found.\"\n    },\n    \"next_action_required\": {\n      \"type\": \"boolean\",\n      \"description\": \"True if the candidate needs to reply, schedule, or complete a task. False otherwise.\"\n    },\n    \"deadline\": {\n      \"type\": \"string\",\n      \"default\": \"None\",\n      \"description\": \"The explicit deadline mentioned in YYYY-MM-DD format, or 'None'.\"\n    },\n    \"summary\": {\n      \"type\": \"string\",\n      \"description\": \"A single-sentence summary of the email context.\"\n    }\n  },\n  \"required\": [\n    \"category\",\n    \"confidence_score\",\n    \"sender_company\",\n    \"job_title\",\n    \"next_action_required\",\n    \"deadline\",\n    \"summary\"\n  ]\n}\n"
+        },
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "typeVersion": 1.3,
+        "position": [
+          432,
+          1056
+        ],
+        "id": "b1af708f-5d51-4e3d-9717-ba2bba02e8bb",
+        "name": "Structured Output Parser1"
+      },
+      {
+        "parameters": {
+          "chatId": "-1003875445905",
+          "text": "=🔔 <b>New Notification Received</b>\n📅 {{ DateTime.fromISO($('Clean Data').item.json.date).setZone('Asia/Manila').toFormat('MMMM d, yyyy h:mm a') }}\n\n📌 <b>Email Classification</b>\n• <b>Category:</b> {{ $('Email Assistant').item.json.output.category }}\n• <b>From:</b> <code>{{ $('Email Assistant').item.json.output.from }}</code>\n• <b>Subject:</b> {{ $('Email Assistant').item.json.output.subject }}\n\n📝 <b>Summary</b>\n{{ $('Email Assistant').item.json.output.summary }}\n\n===============================\n\n⚙️ <b>System Meta</b>\n• <b>AI Confidence:</b> {{ $('Email Assistant').item.json.output.confidence_score }}\n\n🔗 <a href=\"https://mail.google.com/mail/u/0/#inbox/{{ $('Clean Data').item.json.id }}\">Open Gmail Message</a>\n",
+          "additionalFields": {
+            "appendAttribution": false,
+            "parse_mode": "HTML"
+          }
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          912,
+          720
+        ],
+        "id": "b05bb5f9-c5e8-4d70-9d19-d51805fdbb7f",
+        "name": "Send message in the Job Email Watcher1",
+        "webhookId": "3167ada8-f342-4959-aa0d-4860d2cba385",
+        "notesInFlow": true,
+        "credentials": {
+          "telegramApi": {
+            "id": "sxJ5EL7mfUrwZ2n3",
+            "name": "Telegram account"
+          }
+        },
+        "notes": "Notifications"
+      },
+      {
+        "parameters": {
+          "model": "llama-3.3-70b-versatile",
+          "options": {
+            "maxTokensToSample": 1000,
+            "temperature": 0
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+        "typeVersion": 1,
+        "position": [
+          96,
+          1040
+        ],
+        "id": "2b1c7b30-8c55-4255-ac56-39c6373e18d3",
+        "name": "Groq Chat Model1",
+        "credentials": {
+          "groqApi": {
+            "id": "d6n4kXVbqtL1sRxp",
+            "name": "Groq account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "options": {
+            "temperature": 0
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "typeVersion": 1,
+        "position": [
+          272,
+          1040
+        ],
+        "id": "d130cc18-1366-4e36-9990-d797b5b1cd81",
+        "name": "Google Gemini Chat Model1",
+        "credentials": {
+          "googlePalmApi": {
+            "id": "DfL2oENEvtoz48DF",
+            "name": "Google Gemini(PaLM) Api account 2"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "chatId": "-1003777945488",
+          "text": "=🚨 *CRITICAL WORKFLOW ALERT* 🚨\n\n*What happened:*\nAn incoming email could not be processed because the AI provider hit its rate limit. \n\n*Details:*\n• *Node:* AI Agent\n• *Impact:* Process Paused\n• *Recommendation:* Check Groq API usage dashboard.\n",
+          "additionalFields": {
+            "parse_mode": "HTML"
+          }
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          800,
+          912
+        ],
+        "id": "f9ce865d-1a44-4072-9f81-f3808a8122a6",
+        "name": "Send Error Message1",
+        "webhookId": "bab3d569-2bd9-4a6a-b58d-1c06f3ba3261",
+        "notesInFlow": true,
+        "credentials": {
+          "telegramApi": {
+            "id": "sxJ5EL7mfUrwZ2n3",
+            "name": "Telegram account"
+          }
+        },
+        "notes": "Error Log"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Analyze this incoming email:\nFrom: {{ $('Clean Data').item.json.from }}\nSubject: {{ $('Clean Data').item.json.subject }}\nBody: {{ $('Clean Data').item.json.body }}\n",
+          "hasOutputParser": true,
+          "needsFallback": true,
+          "options": {
+            "systemMessage": "You are an expert AI Job Application Analyzer and Email Assistant. Your sole task is to analyze incoming emails and categorize them into exactly one of three categories, then extract key details.\n\n### CATEGORY DEFINITIONS\n1. JOB_OFFER: The company is offering the candidate employment, sending a contract, or extending a formal job offer.\n2. FOLLOW_UP_PROCEDURE: The company is requesting further action. This includes invitations to interviews, coding tests, scheduling links, or requests for additional documents.\n3. REJECTION: The company has decided not to move forward with the application.\n4. UNKNOWN: The email does not clearly fit into any of the three categories above (e.g., general inquiries, networking, spam, or automated acknowledgments).\n\n### OUTPUT FORMAT\nYou must respond ONLY with a JSON object. Do not include markdown formatting, code blocks, or conversational text. Use this exact structure:\n\n{\n  \"category\": \"JOB_OFFER\" | \"FOLLOW_UP_PROCEDURE\" | \"REJECTION\" | \"UNKNOWN\",\n  \"confidence_score\": 0.0 to 1.0,\n  \"sender_company\": \"Company Name\" | \"Unknown\",\n  \"job_title\": \"Job Title\" | \"Unknown\",\n  \"next_action_required\": true/false,\n  \"deadline\": \"YYYY-MM-DD\" | \"None\",\n  \"summary\": \"A 1-sentence summary of the email context.\"\n}\n\n### ANALYSIS RULES\n- Read the entire email body carefully before deciding.\n- If an email contains mixed signals, prioritize the latest definitive status.\n- Be objective and strictly base your data extraction on the text provided.\n\n\nOUTPUT FORMAT:\nYou must output your analysis strictly as a JSON object matching the requested schema. Do not include any conversational text, markdown blocks, or explanations outside the JSON.\n"
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3.1,
+        "position": [
+          160,
+          784
+        ],
+        "id": "7c02f4ac-a093-472a-b1f7-8e9bfe7f5908",
+        "name": "Email Assistant",
+        "retryOnFail": true,
+        "waitBetweenTries": 5000,
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "395a5353-1c4a-43c2-bc7c-e84c2736b0ef",
+                "name": "id",
+                "value": "={{ $json.id }}",
+                "type": "string"
+              },
+              {
+                "id": "4bb863e2-dc02-4372-8395-9c9b9fc67e9b",
+                "name": "threadId",
+                "value": "={{ $json.threadId }}",
+                "type": "string"
+              },
+              {
+                "id": "9be98991-3d99-4aba-9c01-bdf0c8cecfa3",
+                "name": "subject",
+                "value": "={{ $json.subject }}",
+                "type": "string"
+              },
+              {
+                "id": "b4fe3896-1676-49be-bed3-e91c7b9d91ff",
+                "name": "body",
+                "value": "={{ $json.text }}",
+                "type": "string"
+              },
+              {
+                "id": "667ee1a3-5c37-402e-8f35-8c95de8e41b3",
+                "name": "from",
+                "value": "={{ $json.from.value[0].address }}",
+                "type": "string"
+              },
+              {
+                "id": "5430b51e-e6be-46b5-91d0-443069d5449d",
+                "name": "to",
+                "value": "={{ $json.to.value[0].address }}",
+                "type": "string"
+              },
+              {
+                "id": "393f1169-ddcb-4e58-bede-1353efd21d6f",
+                "name": "date",
+                "value": "={{ $json.date }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -320,
+          784
+        ],
+        "id": "9b3dccfe-c889-4eb2-8092-083d543935eb",
+        "name": "Clean Data",
+        "notesInFlow": true,
+        "notes": "Normalize Data"
+      },
+      {
+        "parameters": {
+          "amount": 60
+        },
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          -96,
+          784
+        ],
+        "id": "40d26271-b9d8-4711-9d1a-cc67acb62855",
+        "name": "Rate Limitter",
+        "webhookId": "d09d8ca1-737e-48ae-ad1a-f855b728f67b"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 3
+            },
+            "conditions": [
+              {
+                "id": "81c60c32-9220-4fb9-b0ea-efb034f72962",
+                "leftValue": "={{ $json.output.category }}",
+                "rightValue": "UNKNOWN",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEquals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.3,
+        "position": [
+          608,
+          720
+        ],
+        "id": "49f84989-d73b-4fb3-9583-040000c92567",
+        "name": "FIlter"
+      }
+    ],
+    "connections": {
+      "Email Content": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Filter",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send Error Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send message in the Job Email Watcher": {
+        "main": [
+          [
+            {
+              "node": "Moved Label",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Groq Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Moved Label": {
+        "main": [
+          [
+            {
+              "node": "Append or update row in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter": {
+        "main": [
+          [
+            {
+              "node": "Send message in the Job Email Watcher",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "New Message Received1": {
+        "main": [
+          [
+            {
+              "node": "Clean Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser1": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "Email Assistant",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send message in the Job Email Watcher1": {
+        "main": [
+          []
+        ]
+      },
+      "Groq Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Email Assistant",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Email Assistant",
+              "type": "ai_languageModel",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Email Assistant": {
+        "main": [
+          [
+            {
+              "node": "FIlter",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send Error Message1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Clean Data": {
+        "main": [
+          [
+            {
+              "node": "Rate Limitter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rate Limitter": {
+        "main": [
+          [
+            {
+              "node": "Email Assistant",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "FIlter": {
+        "main": [
+          [
+            {
+              "node": "Send message in the Job Email Watcher1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "John Laungayan",
+    "name": "Email Watcher",
+    "description": "",
+    "autosaved": true
+  },
+  "tags": []
+}
