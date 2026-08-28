@@ -1,0 +1,3023 @@
+{
+  "updatedAt": "2026-07-10T03:51:59.318Z",
+  "createdAt": "2026-06-30T05:36:59.885Z",
+  "id": "n0LqXtPQ9m3Oub2j",
+  "name": "Multi-Agent-Career-Tracker-n8n(orig) 🚀",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -3792,
+        400
+      ],
+      "id": "9f0f18ec-436f-436e-a2d3-5942f30b6c7e",
+      "name": "When chat message received",
+      "webhookId": "6fd2d16b-26d4-42ca-92ae-97d83a01860c"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "1XQuRC3Ium3ldtPQNX0GGXpliVytMtFTQ6r4Q3IBqsEk"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        -1632,
+        304
+      ],
+      "id": "a7e4ded4-ce6e-42e8-8d6e-41634c2241fb",
+      "name": "Get my knowledge base",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "kh4GcdfsfTHkQVr5",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"platform\": {\n      \"type\": \"string\",\n      \"enum\": [\"LinkedIn\", \"JobStreet\", \"Indeed\", \"OLJ PH\", \"Generic\"],\n      \"description\": \"The website where the job was posted. Use 'Generic' if the website is not LinkedIn, JobStreet, Indeed, or OLJ PH.\"\n    },\n    \"company_name\": {\n      \"type\": \"string\",\n      \"description\": \"The extracted name of the hiring company. Output 'Undisclosed' if the employer name is missing or if it matches a software tool name from the job title.\"\n    },\n    \"job_title\": {\n      \"type\": \"string\",\n      \"description\": \"The official job or role title.\"\n    },\n    \"cleaned_job_description\": {\n      \"type\": \"string\",\n      \"description\": \"A single continuous clean string summarizing core responsibilities and tech stack rules. Strictly no newlines or bullet points.\"\n    },\n    \"application_instructions\": {\n      \"type\": \"string\",\n      \"description\": \"Extracted application directions, questions to answer, required application keywords, or Loom video requests. Output 'None' if the application process is standard.\"\n    },\n    \"has_special_requirements\": {\n      \"type\": \"boolean\",\n      \"description\": \"Set to true if application_instructions contains specific questions, required words, or video requests. Set to false if it is standard.\"\n    },\n    \"search_keywords\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"An array containing exactly 5 relevant search keywords or phrases.\"\n    }\n  },\n  \"required\": [\"platform\", \"company_name\", \"job_title\", \"cleaned_job_description\", \"application_instructions\", \"has_special_requirements\", \"search_keywords\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -2736,
+        624
+      ],
+      "id": "f5478ad2-21c7-433c-8e35-c14ad8b9a02a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://mcp.apify.com/?tools=actors,docs,apify/rag-web-browser,inatanli/onlinejobs-ph-scraper,blackfalcondata/seek-scraper,valig/indeed-jobs-scraper,apt_marble/linkedin-job-listings-scraper-by-url",
+        "authentication": "headerAuth",
+        "include": "selected",
+        "includeTools": [
+          "apify--rag-web-browser",
+          "inatanli--onlinejobs-ph-scraper",
+          "blackfalcondata--seek-scraper",
+          "valig--indeed-jobs-scraper",
+          "apt_marble--linkedin-job-listings-scraper-by-url",
+          "get-dataset-items"
+        ],
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        -2864,
+        624
+      ],
+      "id": "6149938d-db5c-404c-b9a9-e66d007e1628",
+      "name": "MCP Tool Scraper",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Q5OG1XyWLgZn0fe9",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"match_confidence_score\": {\n      \"type\": \"number\",\n      \"description\": \"A strict scoring metric from 0 to 100 assessing how well the Aligned Candidate Profile matches the Core Job Requirements.\"\n    },\n    \"automation_decision\": {\n      \"type\": \"string\",\n      \"enum\": [\"TAILOR_RESUME\", \"SKIP_AND_REPORT\"],\n      \"description\": \"Output 'TAILOR_RESUME' if the match_confidence_score is 80 or above. Output 'SKIP_AND_REPORT' if below 80.\"\n    },\n    \"missing_keywords_and_tools\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" },\n      \"description\": \"Critical technical stack tools required by the job posting that are missing from the candidate's documentation.\"\n    },\n    \"knowledge_base_improvement_suggestions\": {\n      \"type\": \"string\",\n      \"description\": \"Direct, single-sentence identification of the technical infrastructure missing to bridge this evaluation gap.\"\n    }\n  },\n  \"required\": [\"match_confidence_score\", \"automation_decision\", \"missing_keywords_and_tools\", \"knowledge_base_improvement_suggestions\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -688,
+        528
+      ],
+      "id": "8c6adbfe-baf1-4dfe-8697-69951009e1eb",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Use the tool to fetch the webpage content of this URL: {{ $json.chatInput }}. Once you get the webpage text, extract the data and format it exactly according to the structured output schema rules. Pay absolute attention to any special application instructions, screening questions, keywords, or Loom video requests buried inside the posting text.",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "You are a deterministic, zero-hallucination job market data extractor. Your sole task is to process raw text from job postings and structure it into a perfect JSON object using ONLY the provided facts. Do not invent, extrapolate, or assume any information.\n\nCRITICAL EXTRACTION RULES:\n1. NO OUTSIDE KNOWLEDGE: You must only use technologies, tools, and requirements explicitly mentioned in the text. Never introduce external terms (e.g., do not add 'Docker', 'TensorFlow', 'PyTorch', 'Git', or degree requirements unless they are explicitly in the source text).\n2. CLEANED JOB DESCRIPTION FIELD: You MUST format the content of the \"cleaned_job_description\" as one single, continuous, unbroken paragraph of text. Absolutely NO newline characters (\\n), NO carriage returns (\\r), NO markdown bullet points (- or *), and NO numbered lists. Convert all lists and bullets into smooth, continuous sentences separated only by spaces and periods.\n3. PLATFORM FIELD: Inspect the source URL. If the URL contains or is from 'LinkedIn', 'JobStreet', 'Indeed', or 'OnlineJobs.ph' (or 'olj'), use that exact name (e.g., \"OnlineJobs.ph\"). If the URL belongs to ANY other website or cannot be determined, you MUST output 'Generic'.\n4. APPLICATION INSTRUCTIONS FIELD: Scrutinize the entire text for screening questions, hidden keywords/phrases, required application email addresses, external forms, or video introduction requests (e.g., Loom). You must extract these instructions and questions verbatim. If absolutely no instructions, emails, or questions exist, output \"None\".\n5. COMPANY NAME FIELD: Output the listed business name or contact person. If no business/contact name is explicitly listed, or if the name provided is just a software framework, tool, or automation language mentioned in the job title (e.g., \"Make.com\", \"n8n\", \"Zapier\", \"Django\", \"Python\"), you MUST output 'Undisclosed'.\n6. LANGUAGE: The entire output must be written strictly in clear, natural English.\n\nSTRICT JSON OUTPUT CONSTRAINT:\nOutput a single, valid JSON object matching the requested schema. Do not include markdown formatting, markdown code blocks, backticks (```json), or any conversational text. Start with { and end with }."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -3024,
+        400
+      ],
+      "id": "2ed316a9-207d-4321-b9a0-018c32394903",
+      "name": "Job Scraper",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CANDIDATE ALIGNED MASTER PROFILE:\n{{ $json.output.aligned_candidate_profile }}\n\n\nTARGET JOB DATA TO EVALUATE:\nJob Title: {{ $('Job Scraper Details').item.json.job_title }}\nCompany Name: {{ $('Job Scraper Details').item.json.company_name }}\nJob Description: {{ $('Job Scraper Details').item.json.cleaned_job_description }}\n\nAnalyze the data above, cross-reference my aligned background with the target job details, and output the structured JSON matching the requested schema rules.\n",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "You are an objective AI Technical Recruiter and Cold Career Analyst. Your sole responsibility is to evaluate a target Job Description against the Candidate's Aligned Master Profile to calculate a strict, data-backed match matrix. \n\nCRITICAL EVALUATION CRITIQUE DIRECTIVES:\n1. HIGH-SCRUTINY EVALUATION: Review technical competencies, framework scales, and special application parameters with strict compliance metrics. Do not inflate scores.\n2. RIGID MATRIX SCORING LABELS:\n   - 90-100%: Candidate natively possesses almost all required tech stack items, tools, and relevant execution scale.\n   - 80-89%: Candidate perfectly matches the core baseline automation infrastructure but is missing 2-3 non-essential minor tools.\n   - Below 80%: Candidate completely lacks the foundational tools, languages, or engineering scale required to safely execute the role.\n3. LOGIC DECISION RULES:\n   - If \"match_confidence_score\" is 80 or higher, output exactly: \"TAILOR_RESUME\".\n   - If \"match_confidence_score\" is below 80, output exactly: \"SKIP_AND_REPORT\".\n4. OUTPUT STRUCTURE REQUIREMENT: Analyze the inputs objectively and map your exact metrics to the schema properties. Do not output any markdown blocks, backticks, conversational filler, or intro text. Focus 100% of processing power on structural calculation."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -912,
+        304
+      ],
+      "id": "c0859cbe-2c4e-428f-93dd-bad820e45c2f",
+      "name": "Job Analyst",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": "nvidia/nemotron-3-super-120b-a12b:free",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -944,
+        528
+      ],
+      "id": "4adbefd4-88a4-4c5a-b11d-d17afa060396",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "IUr59d6Tv6z7wMSs",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9e2dc45e-d7b6-4fa6-8493-adb5eae014cd",
+              "leftValue": "={{ $json.output.match_confidence_score }}",
+              "rightValue": 80,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -256,
+        304
+      ],
+      "id": "ee9a059d-a6c4-4648-a3a5-7ee9d42851ac",
+      "name": "passed for resume creation?"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"professional_summary\": {\n      \"type\": \"string\",\n      \"description\": \"A 2-3 sentence professional summary tailored to the target job, highlighting automation engines and database management using a direct, technical voice.\"\n    },\n    \"tailored_skills_matrix\": {\n      \"type\": \"string\",\n      \"description\": \"A continuous, neatly formatted comma-separated list of specific technical tools, languages, and frameworks pulled from the Master Doc. No bullet points.\"\n    },\n    \"resume_experience_block\": {\n      \"type\": \"string\",\n      \"description\": \"Tailored technical bullet points for your roles at The ValueMed Generics Co. Output exactly 3 points separated by clean text newline characters so they do not bundle onto a single line.\"\n    },\n    \"resume_projects_block\": {\n      \"type\": \"string\",\n      \"description\": \"A concise text summary of 2 portfolio projects from the Master Doc following the [Project Name: Short Setup description + Parentheses Non-Technical Business Value Explanation] style rules, separated by explicit newline characters.\"\n    }\n  },\n  \"required\": [\"professional_summary\", \"tailored_skills_matrix\", \"resume_experience_block\", \"resume_projects_block\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        224
+      ],
+      "id": "71b8c869-546e-4184-8812-dd3ea23cc3c9",
+      "name": "Structured Output Parser2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "dc607314-74f2-41d8-9db4-5f87f0da0b60",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        880,
+        96
+      ],
+      "id": "03366cc8-e62f-4b23-8cdd-d4364757e313",
+      "name": "does file exists?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b0340fb5-9fed-43bc-bb6e-cf70efc742c6",
+              "name": "platform",
+              "value": "={{ $json.output.platform }}",
+              "type": "string"
+            },
+            {
+              "id": "6c2453ca-c76e-41cc-a702-ed9a4dac5fdd",
+              "name": "company_name",
+              "value": "={{ $json.output.company_name === 'Undisclosed' ? 'Undisclosed #' + $now.toMillis().toString().slice(-6) : $json.output.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "a776bd74-2a5d-42f5-a2f0-6d33447b4ff2",
+              "name": "job_title",
+              "value": "={{ $json.output.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "2f244b9f-0677-449a-93c9-115c3c95e5c9",
+              "name": "cleaned_job_description",
+              "value": "={{ $json.output.cleaned_job_description }}",
+              "type": "string"
+            },
+            {
+              "id": "5cc01d8f-5093-4841-bae3-d26c36dece85",
+              "name": "search_keywords",
+              "value": "={{ $json.output.search_keywords }}",
+              "type": "array"
+            },
+            {
+              "id": "56c0d173-1d5b-43fc-97b0-f2edf1e0aa69",
+              "name": "application_instructions",
+              "value": "={{ $json.output.application_instructions }}",
+              "type": "string"
+            },
+            {
+              "id": "6a3ea064-e9cf-44c5-aebf-36462d3e71f6",
+              "name": "has_special_requirements",
+              "value": "={{ $json.output.has_special_requirements }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2528,
+        400
+      ],
+      "id": "7160c95d-d9a1-4afc-b6b8-ee366cf49752",
+      "name": "Job Scraper Details"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CANDIDATE MASTER ARCHITECTURE PROFILE:\n{{ $('Context Expander').item.json.output.aligned_candidate_profile }}\n\nJOB ANALYST COMPLIANCE DATA:\n• Missing Skills to Exclude: {{ $('Job Analyst').item.json.output.missing_keywords_and_tools }}\n\nTARGET JOB DATA:\n• Job Title: {{ $('Job Scraper Details').item.json.job_title }}\n• Company Name: {{ $('Job Scraper Details').item.json.company_name }}\n• Job Description: {{ $('Job Scraper Details').item.json.cleaned_job_description }}\n\nPlease compare these sources and generate the tailored resume fields according to the structural schema rules. Ensure any tools listed in the 'Missing Skills to Exclude' field are strictly omitted from the core resume configurations.",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "You are an objective, task-focused Technical Resume Writer. Your task is to compare a scraped Job Description against the Candidate's Master Document and populate the required template placeholders with clean, tailored, and humble professional content optimized for a high-density 1-page resume layout.\n\nINPUT DATA COPIES & SANITIZATION RULES:\n- Use the provided Aligned Candidate Profile text as your sole source of truth for actual tasks and background. Do not invent entirely new companies or roles.\n- Use the Job Description text to discover what daily tasks and software tools the employer prioritizes.\n- ABSOLUTE EXCLUSION LAW: Inspect the provided 'Missing Skills to Exclude' field. You are strictly FORBIDDEN from including any of those missing tools or frameworks in the professional_summary or the tailored_skills_matrix. If the candidate does not possess them in their master history, they must never appear on this tailored resume.\n\n[MANDATORY HUMBLE & DIRECT TONE PROFILE]\n- Voice & Tone: Keep the language simple, direct, humble, and helpful. Focus purely on daily data management, task logic, and active workflow fixes. Completely remove high-level engineering jargon or airy corporate words.\n- CRITICAL GRAMMAR RULE: Completely ban first-person pronouns. Never use the words \"I\", \"me\", \"my\", \"myself\", \"we\", or \"our\". Start sentences directly with active action verbs (e.g., \"Processed\", \"Managed\", \"Configured\").\n- BANNED AIRY & BOASTFUL WORDS: Do not use any marketing buzzwords or over-confident terms. Never use: \"13+ franchisees\", \"spearheaded\", \"seasoned professional\", \"proven track record\", \"testament\", \"utilizing\", \"expert\", \"meticulous\", or \"innovative\".\n\nINSTRUCTION SEPARATION RULE:\n- Do NOT try to answer application screening questions, write scripts, or include hardware/internet specs in these resume blocks. Focus strictly on simple technical tasks (managing webhooks, fixing SQL data errors, using phpMyAdmin, and organizing n8n/Make automation layouts).\n\nINSTRUCTIONS FOR EACH FIELD:\n\n1. professional_summary: Craft a short, humble opening paragraph (2-3 sentences max). Focus strictly on processing high-volume workflow automation tasks, fixing operational business data sheets, and managing backend database integrations using tools like n8n, Make, and Zapier to reduce manual entry. If AI-driven frameworks (like LangChain or AutoGPT) are flagged as missing, do not reference AI workflows; pivot instead to core data-flow management, webhook linking, and phphMyAdmin database reconciliation to maintain absolute truth.\n\n2. tailored_skills_matrix: Compare the job description requirements against John Lerry's actual Master Profile. List only the relevant software tools, languages, and databases that match what the employer needs. Cross-reference the 'Missing Skills to Exclude' list and completely remove those terms from this list. Format as a continuous, comma-separated list. No bullets or markdown tags.\n\n3. resume_experience_block: Summarize the candidate's work history at The ValueMed Generics Co. LTD. You MUST completely copy the exact structure, tone, and length of this perfect reference block. Output exactly 3 short bullet points. Standardize your line breaks by ending each line with a strict newline character (\\n) so they render as distinct vertical lines:\n- Processed weekly digital workflows and order logs for multiple branch franchises to reduce manual data entry tasks.\\n\n- Managed backend business data sheets, assisted with team operations metrics, and supported daily branch needs.\\n\n- Set up simple multi-step automations to trace log errors, fix spreadsheet mismatches, and keep database records accurate.\n\n4. resume_projects_block: Extract and summarize 2 portfolio projects from the master profile text. For each project, provide a concise explanation that bridges the technical setup with its non-technical business value so an operational manager instantly understands its impact. Format each project exactly like this template structure, separated by a newline (\\n):\n- Automated Google Drive-to-Supabase Vector RAG Ingestion Engine: Built an n8n and Supabase data pipeline that automatically synchronizes folder files to an AI database, allowing a team to search internal documents instantly without manual uploads.\\n\n- API-Powered Lead Intelligence & Automated Engagement System: Engineered multi-step workflows linking webhooks to customer databases, capturing and instantly responding to incoming sales leads so no business opportunities are missed.\n\nCRITICAL FORMATTING CHECK:\nAll text blocks must be generated as clean, raw data fields. Keep text fields highly concise, dense, and task-focused.\n\nOUTPUT RESTRAINT: Output ONLY a single, valid JSON object matching the requested schema parser parameters. Do not include markdown formatting, markdown code blocks, backticks, or any conversational text outside the raw JSON structure."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7608a2f2-f558-43c7-924f-578da36e1c7f",
+      "name": "Resume Writer",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "1-4QpizEcc4MSuo7l-PDsSkIXqHHQBX5St6gdj2_8RaU",
+          "mode": "id"
+        },
+        "name": "=John_Lerry_Laungayan_Resume_{{ $('Job Scraper Details').item.json.company_name }}",
+        "sameFolder": false,
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1GvcWKaqmhAprrkm37RL5Wd2DA-2k_y78",
+          "mode": "list",
+          "cachedResultName": "Job Resume",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1GvcWKaqmhAprrkm37RL5Wd2DA-2k_y78"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1328,
+        96
+      ],
+      "id": "7b1a198d-0487-462f-86ed-770f81237ace",
+      "name": "Create Resume Copy",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "MrsSV3Gv3Q9wjty9",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "=John_Lerry_Laungayan_Resume_{{ $('Job Scraper Details').item.json.company_name }}",
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1GvcWKaqmhAprrkm37RL5Wd2DA-2k_y78",
+            "mode": "list",
+            "cachedResultName": "Job Resume",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1GvcWKaqmhAprrkm37RL5Wd2DA-2k_y78"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        656,
+        96
+      ],
+      "id": "9c9247d2-502c-4f08-bf99-8d32dfab9475",
+      "name": "Search Resume File",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "MrsSV3Gv3Q9wjty9",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "={{ $json.id }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "replaceAll",
+              "text": "{{professional_summary}}",
+              "replaceText": "={{ $('Resume Details').item.json.output.professional_summary }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{tailored_skills_matrix}}",
+              "replaceText": "={{ $('Resume Details').item.json.output.tailored_skills_matrix }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{resume_experience_block}}",
+              "replaceText": "=• {{ $('Resume Details').item.json.output.resume_experience_block.split('\\n').join('\\n• ') }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{resume_projects_block}}",
+              "replaceText": "=• {{ $('Resume Details').item.json.output.resume_projects_block.split('\\n').join('\\n\\n• ') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        1776,
+        112
+      ],
+      "id": "66b93fe3-463a-47f5-b9e1-a7bfe391a86d",
+      "name": "Edit the Resume",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "kh4GcdfsfTHkQVr5",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "appiMgjNKVK4zWAam",
+          "mode": "list",
+          "cachedResultName": "Job Applications",
+          "cachedResultUrl": "https://airtable.com/appiMgjNKVK4zWAam"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblmpG78fjBjgpZ51",
+          "mode": "list",
+          "cachedResultName": "Companies",
+          "cachedResultUrl": "https://airtable.com/appiMgjNKVK4zWAam/tblmpG78fjBjgpZ51"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Company Name": "={{ $json.company_name === 'Undisclosed' ? 'your company' : $json.company_name }}"
+          },
+          "matchingColumns": [
+            "Company Name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Website",
+              "displayName": "Website",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Jobs",
+              "displayName": "Jobs",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -2080,
+        304
+      ],
+      "id": "155bd67e-5270-4547-9c34-9ab9f69fb148",
+      "name": "Create or Update Company",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "m23YBcgxAxTGAgpM",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "appiMgjNKVK4zWAam",
+          "mode": "list",
+          "cachedResultName": "Job Applications",
+          "cachedResultUrl": "https://airtable.com/appiMgjNKVK4zWAam"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblB6BqQAjwSpCEq4",
+          "mode": "list",
+          "cachedResultName": "Jobs",
+          "cachedResultUrl": "https://airtable.com/appiMgjNKVK4zWAam/tblB6BqQAjwSpCEq4"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job Post URL": "={{ $('When chat message received').item.json.chatInput }}",
+            "Company": "=['{{ $json.id }}']",
+            "Job Title": "={{ $('Job Scraper Details').item.json.job_title }}",
+            "Cleaned Job Description": "={{ $('Job Scraper Details').item.json.cleaned_job_description }}",
+            "Platform": "={{ $('Job Scraper Details').item.json.platform }}",
+            "Has Special Requirements": "={{ $('Job Scraper Details').item.json.has_special_requirements }}",
+            "Application Instructions": "={{ $('Job Scraper Details').item.json.application_instructions }}",
+            "Application Status": "Evaluating "
+          },
+          "matchingColumns": [
+            "Job Post URL"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Job ID",
+              "displayName": "Job ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Job Post URL",
+              "displayName": "Job Post URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Cleaned Job Description",
+              "displayName": "Cleaned Job Description",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Platform",
+              "displayName": "Platform",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "LinkedIn",
+                  "value": "LinkedIn"
+                },
+                {
+                  "name": "JobStreet",
+                  "value": "JobStreet"
+                },
+                {
+                  "name": "Indeed",
+                  "value": "Indeed"
+                },
+                {
+                  "name": "OLJ PH",
+                  "value": "OLJ PH"
+                },
+                {
+                  "name": "Generic",
+                  "value": "Generic"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date Found",
+              "displayName": "Date Found",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Resumes & Analysis",
+              "displayName": "Resumes & Analysis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Application Instructions",
+              "displayName": "Application Instructions",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Has Special Requirements",
+              "displayName": "Has Special Requirements",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Application Status",
+              "displayName": "Application Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Evaluating ",
+                  "value": "Evaluating "
+                },
+                {
+                  "name": "Tailored",
+                  "value": "Tailored"
+                },
+                {
+                  "name": "Low Match ",
+                  "value": "Low Match "
+                },
+                {
+                  "name": "Applied ",
+                  "value": "Applied "
+                },
+                {
+                  "name": "Interview",
+                  "value": "Interview"
+                },
+                {
+                  "name": "Rejected ",
+                  "value": "Rejected "
+                },
+                {
+                  "name": "Ignored/Ghosted",
+                  "value": "Ignored/Ghosted"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -1856,
+        304
+      ],
+      "id": "b5c9eece-3735-4042-a33c-5e29d3120ac0",
+      "name": "Create or Update Job",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "m23YBcgxAxTGAgpM",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1104,
+        32
+      ],
+      "id": "647e1013-a125-47fa-ac3f-f778ea771ecd",
+      "name": "Delete a file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "MrsSV3Gv3Q9wjty9",
+          "name": "Google Drive account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b059c07e-b482-4c0c-8c98-48ff21d625aa",
+              "name": "output.professional_summary",
+              "value": "={{ $json.output.professional_summary }}",
+              "type": "string"
+            },
+            {
+              "id": "caa44f89-6867-41cd-9960-39f6f8531ed6",
+              "name": "output.tailored_skills_matrix",
+              "value": "={{ $json.output.tailored_skills_matrix }}",
+              "type": "string"
+            },
+            {
+              "id": "4d8534de-ae1c-4911-b8cf-521ed0adddf8",
+              "name": "output.resume_experience_block",
+              "value": "={{ $json.output.resume_experience_block }}",
+              "type": "string"
+            },
+            {
+              "id": "3b60b4a2-e4f6-466d-9871-767a3ab7f696",
+              "name": "output.resume_projects_block",
+              "value": "={{ $json.output.resume_projects_block }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        96
+      ],
+      "id": "4229cdc1-94f6-407e-b675-bc97bd04dff2",
+      "name": "Resume Details"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c7f900c4-d2c6-496a-a558-6a8fe1f24ddd",
+              "name": "output.match_confidence_score",
+              "value": "={{ $json.output.match_confidence_score }}",
+              "type": "number"
+            },
+            {
+              "id": "d8abce99-0b01-4634-8be6-022a8a756d00",
+              "name": "output.automation_decision",
+              "value": "={{ $json.output.automation_decision }}",
+              "type": "string"
+            },
+            {
+              "id": "2416f393-e6da-4efa-a805-90faf494f342",
+              "name": "output.missing_keywords_and_tools",
+              "value": "={{ $json.output.missing_keywords_and_tools }}",
+              "type": "array"
+            },
+            {
+              "id": "eb4f8773-803a-418a-9b0a-9686db8c6a35",
+              "name": "output.knowledge_base_improvement_suggestions",
+              "value": "={{ $json.output.knowledge_base_improvement_suggestions }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -496,
+        304
+      ],
+      "id": "c2010b9f-4243-454b-bf90-3cb2de4d3167",
+      "name": "Job Analysis Details"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appiMgjNKVK4zWAam",
+          "mode": "list",
+          "cachedResultName": "Job Applications",
+          "cachedResultUrl": "https://airtable.com/appiMgjNKVK4zWAam"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPRZ9sRPQvQ1tmV",
+          "mode": "list",
+          "cachedResultName": "Resumes & Analysis",
+          "cachedResultUrl": "https://airtable.com/appiMgjNKVK4zWAam/tblPRZ9sRPQvQ1tmV"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Target Job": "=['{{ $('Create or Update Job').item.json.id }}']",
+            "Match Score": "={{ $('Job Analysis Details').item.json.output.match_confidence_score }}",
+            "Automation Decision": "={{ $('Job Analysis Details').item.json.output.automation_decision }}",
+            "Missing Keywords": "={{ $node[\"Job Analysis Details\"].json.output.missing_keywords_and_tools.join(', ') }}",
+            "Application Platform": "={{ $('Job Scraper Details').item.json.platform }}",
+            "master_doc_update_snippet": "={{ $json.master_doc_update_snippet }}",
+            "linear_execution_flow": "={{ $json.linear_execution_flow }}",
+            "required_tech_stack": "={{ $json.tech_stack }}",
+            "project_blueprint_title": "={{ $json.project_blueprint }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Resume ID",
+              "displayName": "Resume ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Target Job",
+              "displayName": "Target Job",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Match Score",
+              "displayName": "Match Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Automation Decision",
+              "displayName": "Automation Decision",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "TAILOR_RESUME",
+                  "value": "TAILOR_RESUME"
+                },
+                {
+                  "name": "SKIP_AND_REPORT",
+                  "value": "SKIP_AND_REPORT"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Missing Keywords",
+              "displayName": "Missing Keywords",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Google Doc Link",
+              "displayName": "Google Doc Link",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date Generated",
+              "displayName": "Date Generated",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Generated Proposal/Pitch",
+              "displayName": "Generated Proposal/Pitch",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Special Responses / Scripts",
+              "displayName": "Special Responses / Scripts",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Application Platform",
+              "displayName": "Application Platform",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "LinkedIn",
+                  "value": "LinkedIn"
+                },
+                {
+                  "name": "JobStreet",
+                  "value": "JobStreet"
+                },
+                {
+                  "name": "Indeed",
+                  "value": "Indeed"
+                },
+                {
+                  "name": "OLJ PH",
+                  "value": "OLJ PH"
+                },
+                {
+                  "name": "Generic",
+                  "value": "Generic"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "project_blueprint_title",
+              "displayName": "project_blueprint_title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "required_tech_stack",
+              "displayName": "required_tech_stack",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "linear_execution_flow",
+              "displayName": "linear_execution_flow",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "master_doc_update_snippet",
+              "displayName": "master_doc_update_snippet",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        496
+      ],
+      "id": "645f09ee-3a15-4b08-838c-d0d54a39382c",
+      "name": "Log Job Analysis in Airtable",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "m23YBcgxAxTGAgpM",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appiMgjNKVK4zWAam",
+          "mode": "list",
+          "cachedResultName": "Job Applications",
+          "cachedResultUrl": "https://airtable.com/appiMgjNKVK4zWAam"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPRZ9sRPQvQ1tmV",
+          "mode": "list",
+          "cachedResultName": "Resumes & Analysis",
+          "cachedResultUrl": "https://airtable.com/appiMgjNKVK4zWAam/tblPRZ9sRPQvQ1tmV"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Match Score": "={{ $('Job Analysis Details').item.json.output.match_confidence_score }}",
+            "Missing Keywords": "={{ $node[\"Job Analysis Details\"].json.output.missing_keywords_and_tools.join(', ') }}",
+            "Automation Decision": "={{ $('Job Analysis Details').item.json.output.automation_decision }}",
+            "Google Doc Link": "=https://docs.google.com/document/d/{{ $('Edit the Resume').item.json.documentId }}/edit?tab=t.0",
+            "Target Job": "=['{{ $('Create or Update Job').item.json.id }}']",
+            "Generated Proposal/Pitch": "={{ $('Proposal Details').item.json.output.proposal_pitch }}",
+            "Special Responses / Scripts": "={{ $('Proposal Details').item.json.output.instruction_responses }}",
+            "Application Platform": "={{ $('Job Scraper Details').item.json.platform }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Resume ID",
+              "displayName": "Resume ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Target Job",
+              "displayName": "Target Job",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Match Score",
+              "displayName": "Match Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Automation Decision",
+              "displayName": "Automation Decision",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "TAILOR_RESUME",
+                  "value": "TAILOR_RESUME"
+                },
+                {
+                  "name": "SKIP_AND_REPORT",
+                  "value": "SKIP_AND_REPORT"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Missing Keywords",
+              "displayName": "Missing Keywords",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Google Doc Link",
+              "displayName": "Google Doc Link",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date Generated",
+              "displayName": "Date Generated",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Generated Proposal/Pitch",
+              "displayName": "Generated Proposal/Pitch",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Special Responses / Scripts",
+              "displayName": "Special Responses / Scripts",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Application Platform",
+              "displayName": "Application Platform",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "LinkedIn",
+                  "value": "LinkedIn"
+                },
+                {
+                  "name": "JobStreet",
+                  "value": "JobStreet"
+                },
+                {
+                  "name": "Indeed",
+                  "value": "Indeed"
+                },
+                {
+                  "name": "OLJ PH",
+                  "value": "OLJ PH"
+                },
+                {
+                  "name": "Generic",
+                  "value": "Generic"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "project_blueprint_title",
+              "displayName": "project_blueprint_title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "required_tech_stack",
+              "displayName": "required_tech_stack",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "linear_execution_flow",
+              "displayName": "linear_execution_flow",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "master_doc_update_snippet",
+              "displayName": "master_doc_update_snippet",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2688,
+        96
+      ],
+      "id": "f1eed43f-d0fc-4d31-9fc7-21ff585f38fd",
+      "name": "Log Job Analysis in Airtable1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "m23YBcgxAxTGAgpM",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1004329359747",
+        "text": "=🛑 <b>LOW-MATCH CONTEXT ALERT (Score: {{ $('Job Analysis Details').item.json.output.match_confidence_score }}%)</b>\n\n💼 <b>Position:</b> {{ $('Job Scraper Details').item.json.job_title }}\n🏢 <b>Company:</b> {{ $('Job Scraper Details').item.json.company_name }}\n🌐 <b>Platform:</b> {{ $('Job Scraper Details').item.json.platform }}\n\n📉 <b>AUTOMATION DECISION:</b>\nThe Analyst Gatekeeper routed this application to Path B because the structural alignment fell below our rigid 80% threshold. No tailored resume or proposal pitch was generated.\n\n❌ <b>IDENTIFIED TECHNICAL GAPS:</b>\n<code>{{ $('Job Analysis Details').item.json.output.missing_keywords_and_tools }}</code>\n\n💡 <b>KNOWLEDGE BASE IMPROVEMENT SUGGESTIONS:</b>\n<pre><i>{{ $('Job Analysis Details').item.json.output.knowledge_base_improvement_suggestions }}</i></pre>\n\n📊 <b>Airtable Relational ID Linked:</b> <code>{{ $json.id }}</code>",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1104,
+        496
+      ],
+      "id": "4ebdb4c3-db98-4e3e-a2e8-9def514188ce",
+      "name": "Low Job Match Alert",
+      "webhookId": "17a3d552-6b56-4e44-ac44-4379a6118bb6",
+      "credentials": {
+        "telegramApi": {
+          "id": "sxJ5EL7mfUrwZ2n3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1004311183884",
+        "text": "=🎯 <b>HIGH-MATCH JOB ANALYSIS COMPLETE (Score: {{ $('Job Analysis Details').item.json.output.match_confidence_score }}%)</b>\n\n💼 <b>Position:</b> {{ $('Job Scraper Details').item.json.job_title }}\n🏢 <b>Company:</b> {{ $('Job Scraper Details').item.json.company_name }}\n🌐 <b>Platform:</b> {{ $('Job Scraper Details').item.json.platform }}\n\n📄 <b>TAILORED RESUME DOCUMENT:</b>\n📥 <a href=\"https://docs.google.com/document/d/{{ $('Edit the Resume').item.json.documentId }}/edit?tab=t.0\">Open Generated Resume Google Doc</a>\n\n🚀 <b>PLATFORM-NATIVE PROPOSAL PITCH:</b>\n<pre>{{ $('Proposal Details').item.json.output.proposal_pitch }}</pre>\n\n⚠️ <b>SCREENING QUESTIONS / SPECIAL INSTRUCTIONS:</b>\n<pre>{{ $('Proposal Details').item.json.output.instruction_responses }}</pre>\n\n🛠️ <b>INTERVIEW PREP CHECKLIST (THE {{ 100 - parseInt($('Job Analysis Details').item.json.output.match_confidence_score) }}% GAP):</b>\n<pre><b>Missing Keywords/Tools:</b> <code>{{ $('Job Analysis Details').item.json.output.missing_keywords_and_tools }}</code>\n<b>Strategic Focus:</b> <i>{{ $('Job Analysis Details').item.json.output.knowledge_base_improvement_suggestions }}</i></pre>\n\n📊 <b>Airtable Relational ID Linked:</b> <code>{{ $node[\"Log Job Analysis in Airtable1\"].json.id }}</code>",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3168,
+        96
+      ],
+      "id": "39812a43-a4ca-4678-be05-929c96fcf709",
+      "name": "High Job Match Alert",
+      "webhookId": "17a3d552-6b56-4e44-ac44-4379a6118bb6",
+      "credentials": {
+        "telegramApi": {
+          "id": "sxJ5EL7mfUrwZ2n3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 60
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -3344,
+        400
+      ],
+      "id": "1c12e806-059d-4145-a820-33cd7da8dd85",
+      "name": "60 Seconds Delay",
+      "webhookId": "8b7973be-77b7-440d-a9a1-d87e2c2c9eb2"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-coder:free",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        224
+      ],
+      "id": "1941c0a0-9294-486d-82c5-2d7779fa4145",
+      "name": "OpenRouter Chat Model2",
+      "credentials": {
+        "openRouterApi": {
+          "id": "IUr59d6Tv6z7wMSs",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -816,
+        528
+      ],
+      "id": "17cb7996-8868-4e43-8ee7-2fb9cf7e9793",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        96,
+        224
+      ],
+      "id": "21a5c728-6e41-4bdd-baa9-35b7232506a0",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "d6n4kXVbqtL1sRxp",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"proposal_pitch\": {\n      \"type\": \"string\",\n      \"description\": \"The complete platform-specific message body or cover letter text matching the required length and tone rules.\"\n    },\n    \"instruction_responses\": {\n      \"type\": \"string\",\n      \"description\": \"Itemized, direct answers to screening rules, text script generation for loom videos, or a baseline trial follow-up message if instructions are 'None'. Projects mentioned here must follow the strict bracketed explanation rule.\"\n    }\n  },\n  \"required\": [\"proposal_pitch\", \"instruction_responses\"]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2256,
+        320
+      ],
+      "id": "0c265dff-0f3e-4024-9f61-0c1940d75d5f",
+      "name": "Structured Output Parser3"
+    },
+    {
+      "parameters": {
+        "model": "meta-llama/llama-3.3-70b-instruct:free",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        320
+      ],
+      "id": "ea80544e-2a06-454e-8b3e-573a2b57a208",
+      "name": "OpenRouter Chat Model4",
+      "credentials": {
+        "openRouterApi": {
+          "id": "IUr59d6Tv6z7wMSs",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2128,
+        320
+      ],
+      "id": "47a3e1e1-bfcd-4cbf-9c8e-0b0cebc6f30e",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CANDIDATE MASTER ARCHITECTURE PROFILE:\n{{ $('Context Expander').item.json.output.aligned_candidate_profile }}\n\nTARGET ENVIRONMENT METADATA:\n- Platform Name: {{ $('Job Scraper Details').item.json.platform }}\n- Target Company: {{ $('Job Scraper Details').item.json.company_name === 'Undisclosed' ? 'your company' : $('Job Scraper Details').item.json.company_name }}\n- Role Title: {{ $('Job Scraper Details').item.json.job_title }}\n- Cleaned Job Description: {{ $('Job Scraper Details').item.json.cleaned_job_description }}\n- Extracted Screening Instructions: {{ $('Job Scraper Details').item.json.application_instructions }}\n\nTASK EXECUTION:\nSynthesize the environment metadata against the candidate profile. Generate a native outreach pitch and compile contextual responses to screening guidelines following the strict platform instructions and JSON schema constraints provided in the system framework.",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=You are John Lerry B. Laungayan's Outbound Communication Engine. Your sole directive is to synthesize raw job postings with his engineering background to create natural, highly targeted, platform-native outreach pitches and screening answers.\n\n[CORE HUMAN TONALITY RULES]\n- Narrative Voice: Write with humble, helpful, and direct human clarity. Focus purely on technical logic, database synchronization, API paths, and automated data entry execution. \n- Absolute Jargon Ban: Do not praise your skills, use corporate marketing slang, or include boastful buzzwords. Avoid words like \"streamlined\", \"expert\", \"seasoned\", \"cutting-edge\", \"revolutionary\", or \"unparalleled\".\n\n[SPECIFIC PROJECTS BUSINESS VALUE RULE]\nWhen describing projects to support answers or statements, you must seamlessly integrate them directly into the paragraph flow using this exact configuration and parenthetical syntax. Do not invent details outside of John Lerry's real portfolio:\n- Allowed Formula: [Project Name] + (simple non-technical value explanation) + using [Tools Used].\n- Real-World Blueprint: \"For similar projects, I built an 'Automated Lead Enrichment System' (which automatically gathers and organizes detailed information about potential customers to improve sales targeting), an 'API-Powered Lead Intelligence & Automated Engagement System' (which instantly captures and responds to new customer leads so no sales opportunities are missed), and an 'AI-Powered Lead Qualification & Follow-Up System' (which uses AI to identify the best leads and ensures timely, personalized follow-ups) using Make.com and n8n.\"\n\n======================================================================\nDYNAMIC PLATFORM OUTPUT LAYOUTS\n======================================================================\n\nIF PLATFORM IS \"OnlineJobs.ph\" / \"OLJ PH\":\n- Tone: Apply the \"Helpful Virtual Assistant\" strategy—direct, practical, honest, and entirely free of corporate fluff.\n- Length: Absolute maximum of 120 words. Keep paragraphs restricted to 1–2 short sentences.\n- Focus: Highlight error-handling setups, data entry mitigation, and maintaining workflow continuity.\n- Mandatory Footer: You must append this exact configuration line-for-line at the very bottom of the pitch text:\n  Technical Specs:\n  • Internet Connection: Reliable\n  • Hardware: Laptop\n  • Availability: Full-Time / Ready for immediate onboarding\n\nIF PLATFORM IS \"LinkedIn\" / \"Upwork\":\n- Tone: Short, helpful peer-to-peer messaging. Write it exactly like a brief, clean, and direct statement offering to solve a specific workflow bottleneck.\n- Length: Absolute maximum of 50-60 words. Never exceed two short paragraphs.\n- Strategy: Avoid guessing internal company transitions or naming third-party tools not explicitly listed in their job description. Open directly using the precise greeting protocol defined in the example style below.\n- Greeting & Tone Style Blueprint: \n  \"Hi [Company Name or Employer Name] team, I saw you're building custom AI workflows for lead enrichment and multi-channel outreach. I can help architect and implement reliable automation loops to handle your scraping data streams and personalize follow-ups cleanly. Let me know if you'd like to discuss how to set this up for your team.\"\n\nIF PLATFORM IS \"Indeed\" OR \"JobStreet\":\n- Tone: Crisp, plain, and highly technical. Balance professional business communication etiquette with a hyper-focused approach to operational backend tasks.\n- Length: Absolute maximum of 150 words total.\n- Strategy: Structure the pitch text body into exactly two clean, distinct blocks starting with a clear greeting (\"Hi [Company Name] team,\"):\n  - Paragraph 1: Direct alignment statement showcasing experience tracking high-throughput data flows, web scraping arrays, or solving database sync errors inside phpMyAdmin.\n  - Paragraph 2: Direct link to the candidate's custom live engineering portfolio (https://vercel.app) along with a statement confirming availability for technical tests or immediate discovery interviews.\n\n======================================================================\nSCREENING COMPLIANCE ENGINE\n======================================================================\nAnalyze the \"Extracted Screening Directives\" field. \n1. If screening instructions are present, compile direct, clear, logical responses using John's real-world skills database.\n2. ABSOLUTE BULLET AND LIST BAN: Do not use bullet points (•), hyphens (-), numbered listings, list dividers, or indent tabs anywhere in this field. Format all structural answers as smooth, fluid, standalone paragraphs separated cleanly by double newlines (\\n\\n). Refer directly to the [SPECIFIC PROJECTS BUSINESS VALUE RULE] to map project descriptions smoothly into text blocks.\n3. If a video introduction or Loom link is explicitly requested, generate a clean, simple, 30-second read-ready video script block.\n4. If no instructions are detected or the field states \"None\", output a clean, standard platform follow-up message text inside the \"instruction_responses\" field stating interest in a practical workflow trial.\n\nOUTPUT RESTRAINT: Output ONLY a single, valid JSON object matching the requested schema parser parameters. Do not include markdown formatting, markdown code blocks, backticks, or any conversational text outside the raw JSON structure."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2032,
+        112
+      ],
+      "id": "4c5ed638-afac-4355-b067-31d406a55907",
+      "name": "Proposal Writer",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9e2d6fa8-f756-421f-b2c7-c4346f77ad27",
+              "name": "output.proposal_pitch",
+              "value": "={{ $json.output.proposal_pitch }}",
+              "type": "string"
+            },
+            {
+              "id": "ecfac944-dd50-46bc-a719-5de21a598df8",
+              "name": "output.instruction_responses",
+              "value": "={{ $json.output.instruction_responses.split('\\n').join('\\n') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2464,
+        112
+      ],
+      "id": "b23d58a7-2c3b-441f-9588-aa9cb59b40db",
+      "name": "Proposal Details"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -3792,
+        832
+      ],
+      "id": "975ccfb8-bb58-451a-b956-96a1eead73cf",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "chatId": "-1003942376666",
+        "text": "=⚠️ <b>N8N PIPELINE CRASH REPORT</b>\n========================\n<b>Workflow:</b> {{ $json.workflow.name }}\n<b>Failed Node:</b> {{ $json.execution.lastNodeExecuted }}\n<b>Error Reason:</b> <pre>{{ $json.execution.error.message }}</pre>",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -3568,
+        832
+      ],
+      "id": "4fcb821d-67ee-45b2-8b1b-7770d8234913",
+      "name": "Error Message",
+      "webhookId": "04ebc1d1-6f25-4125-88b8-3ac55f0e8dc6",
+      "credentials": {
+        "telegramApi": {
+          "id": "sxJ5EL7mfUrwZ2n3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a8b3920b-e0a2-4028-80c0-811f295b3608",
+              "leftValue": "={{ $json.cleaned_job_description }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2304,
+        400
+      ],
+      "id": "3338df72-739f-4ffe-b6d9-4ea24956707d",
+      "name": "have payload?"
+    },
+    {
+      "parameters": {
+        "chatId": "-1003942376666",
+        "text": "=⚠️ Scraper Blocked: Please manually copy-paste the text for this job link.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2080,
+        496
+      ],
+      "id": "c47198b7-3bde-48bd-b163-4f6dabe7cc6a",
+      "name": "Send Alert for Block Scraper",
+      "webhookId": "c611f100-9da0-472c-abfd-89e88aa831f1",
+      "credentials": {
+        "telegramApi": {
+          "id": "sxJ5EL7mfUrwZ2n3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "06ff7ea8-1db3-47cb-baee-1c4e14dd2e9e",
+              "leftValue": "={{ $json.chatInput }}",
+              "rightValue": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -3568,
+        400
+      ],
+      "id": "db7740bf-1fcd-4f6b-b699-98d145f8393b",
+      "name": "is Valid URL?"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1552,
+        96
+      ],
+      "id": "945872a0-8067-4776-9cf9-bc5fc7250c6c",
+      "name": "30 Seconds Delay",
+      "webhookId": "f82f580d-e2b6-457e-91a8-b7dc85cb2456"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Target Job Title:\n{{ $('Job Scraper Details').item.json.job_title }}\n\nTarget Job Description:\n{{ $('Job Scraper Details').item.json.cleaned_job_description }}\n\nTarget Application Instructions:\n{{ $('Job Scraper Details').item.json.application_instructions }}\n\n------------------------------------------------------------------------\nCandidate Knowledge Base Source Document:\n{{ $json.content }}",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "You are an expert Systems Architect and Technical Keyword Alignment Engine. Your sole responsibility is to analyze the user's provided target Job Description and map the candidate's implicit engineering background directly to the explicit technical phrasing and modern tools requested in that posting. This alignment prevents downstream evaluation engines from triggering false negatives due to minor vocabulary variations.\n\nCRITICAL PIPELINE EXECUTION DIRECTIVES:\n1. STRICT DATA TRUTHFULNESS: You must never fabricate experience, invent client names, or add tools that the candidate has not used. Every alignment must trace back securely to the provided Candidate Knowledge Base.\n2. IMPLICIT TO EXPLICIT RESOLUTION: Isolate areas where John's foundational engineering builds implicitly execute a requirement but lack matching keyword optimization. \n   - Mapping Rule A: If the job requires \"REST APIs\", \"Data Streams\", or \"CRUD Operations\", map it directly to his n8n webhook loops, Google Drive download flows, and Supabase integration logic.\n   - Mapping Rule B: If the job requires \"State Machines\", \"System Logic Gates\", or \"Hardware Authentication\", map it directly to his ESP32 hardware smart-lock dynamic inventory deduction mechanisms and Django MAC address registration serialization.\n   - Mapping Rule C: If the job requires \"Database Performance or Management\", map it directly to his raw SQL database corrections inside phpMyAdmin for franchise batch errors.\n3. CONTEXT EXTENSION OUTCOME: Generate a clean translation of John Lerry's background using his natural, practical, and punchy writing style. Avoid all hyper-formal greetings or corporate marketing buzzwords."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1376,
+        304
+      ],
+      "id": "02b5ebf5-3e93-48ba-856b-038fa609589c",
+      "name": "Context Expander",
+      "notesInFlow": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "notes": "Pre-Optimizer"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1408,
+        528
+      ],
+      "id": "94aad64b-0689-410f-b4e5-c4521c5190d2",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "d6n4kXVbqtL1sRxp",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"aligned_candidate_profile\": {\n      \"type\": \"string\",\n      \"description\": \"The completely rewritten and keyword-aligned candidate background. This contains the optimized professional summary, an aligned skills matrix, and a rewritten technical project block that maps the candidate's real engineering experiences directly to the specific tools and jargon found in the target job description. Output must be a pure string with no markdown formatting, no backticks, and zero corporate fluff.\"\n    }\n  },\n  \"required\": [\"aligned_candidate_profile\"]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -1152,
+        528
+      ],
+      "id": "0e3bfaec-6d70-41b1-b842-bdc40d99405c",
+      "name": "Structured Output Parser4"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"project_blueprint_title\": {\n      \"type\": \"string\",\n      \"description\": \"The exact production title of the proposed bridge project assignment.\"\n    },\n    \"required_tech_stack\": {\n      \"type\": \"string\",\n      \"description\": \"A clean, comma-separated string list of the missing tools combined with the candidate's active stack components needed to build this assignment.\"\n    },\n    \"linear_execution_flow\": {\n      \"type\": \"string\",\n      \"description\": \"A comprehensive, step-by-step, node-by-node automated mapping explaining exactly how the data must trigger, route, and transform inside n8n or the backend infrastructure.\"\n    },\n    \"master_doc_update_snippet\": {\n      \"type\": \"string\",\n      \"description\": \"A raw, pre-formatted project entry snippet matching the exact Section 3 Master Doc schema layout (Purpose, Stack, Execution Flow, Outcome) ready to be copied into the candidate's profile once built.\"\n    }\n  },\n  \"required\": [\n    \"project_blueprint_title\",\n    \"required_tech_stack\",\n    \"linear_execution_flow\",\n    \"master_doc_update_snippet\"\n  ]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        720
+      ],
+      "id": "305ce7d2-8daa-4e77-89cc-1eed77f15463",
+      "name": "Structured Output Parser5"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CANDIDATE CURRENT HISTORY:\n{{ $('Get my knowledge base').item.json.content }}\n\nTARGET JOB ENCOUNTERED:\nRole: {{ $('Job Scraper Details').item.json.job_title }}\nDescription: {{ $('Job Scraper Details').item.json.cleaned_job_description }}\n\nIDENTIFIED TECHNICAL GAPS (FROM AGENT 2):\n{{ $('Job Analyst').item.json.missing_keywords_and_tools }}\n\nTASK INSTRUCTION:\nAnalyze the data inputs above and design a raw, step-by-step engineering roadmap for a new portfolio build to bridge this gap. Output the structured JSON matching the requested output parser schema fields. Absolutely DO NOT include markdown code blocks, backticks, or conversational text filler.\n",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "You are an Advanced Engineering Mentor and Systems Architect. Your sole operational objective is to analyze the technical data deficiencies that caused a candidate's job application rejection and engineer a definitive, high-utility backend prototype assignment to successfully bridge this skill gap for future tracking runs.\n\nCRITICAL PIPELINE EXECUTION DIRECTIVES:\n1. DESIGN REALISTIC ARCHITECTURE: Do not provide vague advice like 'take an online course' or 'read documentation'. You must architect a concrete project title, full stack layout, and an exact step-by-step linear n8n automation or backend engineering blueprint.\n2. INTEGRATION RULE: The designed prototype assignment must explicitly incorporate the missing tool stack elements (e.g., Docker containerization, AWS S3 infrastructure, custom MCP configurations, or advanced testing scripts) while naturally integrating with the candidate's existing core competencies (n8n webhooks, Supabase, Python, and relational database logic).\n3. LINGUISTIC ALIGNMENT: Avoid conversational introductions, greetings, or fluff. Output the structural engineering roadmap directly using short, technical, performance-focused sentences."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        0,
+        496
+      ],
+      "id": "328b9898-ca9c-44b3-811f-8a8bd61238af",
+      "name": "Project Gap Architect",
+      "notesInFlow": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "notes": "Feedback Loop"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "temperature": 0.5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        720
+      ],
+      "id": "e8732e2d-44c2-4efb-88c3-f6d19f4b4eda",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "d6n4kXVbqtL1sRxp",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "36196ad1-9d7b-429b-8cc5-49c66d5662e4",
+              "name": "project_blueprint",
+              "value": "={{ $json.output.project_blueprint_title }}",
+              "type": "string"
+            },
+            {
+              "id": "f7a64e2a-8ccb-40f8-8e79-5ede44f5cd84",
+              "name": "tech_stack",
+              "value": "={{ $json.output.required_tech_stack }}",
+              "type": "string"
+            },
+            {
+              "id": "8da8929f-36de-415d-a0cd-e15387d25a41",
+              "name": "linear_execution_flow",
+              "value": "={{ $json.output.linear_execution_flow }}",
+              "type": "string"
+            },
+            {
+              "id": "56664391-95e9-4cc3-ba68-d53ee48e63df",
+              "name": "master_doc_update_snippet",
+              "value": "={{ $json.output.master_doc_update_snippet }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        512
+      ],
+      "id": "d76e4955-fd07-49b2-8eae-5449887a0f85",
+      "name": "Gap Details"
+    },
+    {
+      "parameters": {
+        "model": "nex-agi/nex-n2-pro:free",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        528
+      ],
+      "id": "3049da98-0d2d-43e2-881a-022aa78d4f96",
+      "name": "OpenRouter Chat Model5",
+      "credentials": {
+        "openRouterApi": {
+          "id": "IUr59d6Tv6z7wMSs",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nvidia/nemotron-3-super-120b-a12b:free",
+        "options": {
+          "temperature": 0.5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        96,
+        720
+      ],
+      "id": "c74f6aa5-8932-4ff2-bea0-5910e9458a77",
+      "name": "OpenRouter Chat Model6",
+      "credentials": {
+        "openRouterApi": {
+          "id": "IUr59d6Tv6z7wMSs",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appiMgjNKVK4zWAam",
+          "mode": "list",
+          "cachedResultName": "Job Applications",
+          "cachedResultUrl": "https://airtable.com/appiMgjNKVK4zWAam"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblB6BqQAjwSpCEq4",
+          "mode": "list",
+          "cachedResultName": "Jobs",
+          "cachedResultUrl": "https://airtable.com/appiMgjNKVK4zWAam/tblB6BqQAjwSpCEq4"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Application Status": " Tailored (Reviewing)",
+            "id": "={{ $('Create or Update Job').item.json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Job ID",
+              "displayName": "Job ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Job Post URL",
+              "displayName": "Job Post URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Cleaned Job Description",
+              "displayName": "Cleaned Job Description",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Platform",
+              "displayName": "Platform",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "LinkedIn",
+                  "value": "LinkedIn"
+                },
+                {
+                  "name": "JobStreet",
+                  "value": "JobStreet"
+                },
+                {
+                  "name": "Indeed",
+                  "value": "Indeed"
+                },
+                {
+                  "name": "OLJ PH",
+                  "value": "OLJ PH"
+                },
+                {
+                  "name": "Generic",
+                  "value": "Generic"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date Found",
+              "displayName": "Date Found",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Resumes & Analysis",
+              "displayName": "Resumes & Analysis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Application Instructions",
+              "displayName": "Application Instructions",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Has Special Requirements",
+              "displayName": "Has Special Requirements",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Application Status",
+              "displayName": "Application Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Evaluating ",
+                  "value": "Evaluating "
+                },
+                {
+                  "name": " Tailored (Reviewing)",
+                  "value": " Tailored (Reviewing)"
+                },
+                {
+                  "name": " Low Match (Gaps Found)",
+                  "value": " Low Match (Gaps Found)"
+                },
+                {
+                  "name": "Applied ",
+                  "value": "Applied "
+                },
+                {
+                  "name": "Interview",
+                  "value": "Interview"
+                },
+                {
+                  "name": "Rejected ",
+                  "value": "Rejected "
+                },
+                {
+                  "name": "Ignored/Ghosted",
+                  "value": "Ignored/Ghosted"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2912,
+        96
+      ],
+      "id": "1b273819-38d1-4731-a9a3-c7fb40ddf3ae",
+      "name": "Tailored Job",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "m23YBcgxAxTGAgpM",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appiMgjNKVK4zWAam",
+          "mode": "list",
+          "cachedResultName": "Job Applications",
+          "cachedResultUrl": "https://airtable.com/appiMgjNKVK4zWAam"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblB6BqQAjwSpCEq4",
+          "mode": "list",
+          "cachedResultName": "Jobs",
+          "cachedResultUrl": "https://airtable.com/appiMgjNKVK4zWAam/tblB6BqQAjwSpCEq4"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Application Status": " Low Match (Gaps Found)",
+            "id": "={{ $('Create or Update Job').item.json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Job ID",
+              "displayName": "Job ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Job Post URL",
+              "displayName": "Job Post URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Cleaned Job Description",
+              "displayName": "Cleaned Job Description",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Platform",
+              "displayName": "Platform",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "LinkedIn",
+                  "value": "LinkedIn"
+                },
+                {
+                  "name": "JobStreet",
+                  "value": "JobStreet"
+                },
+                {
+                  "name": "Indeed",
+                  "value": "Indeed"
+                },
+                {
+                  "name": "OLJ PH",
+                  "value": "OLJ PH"
+                },
+                {
+                  "name": "Generic",
+                  "value": "Generic"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date Found",
+              "displayName": "Date Found",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Resumes & Analysis",
+              "displayName": "Resumes & Analysis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Application Instructions",
+              "displayName": "Application Instructions",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Has Special Requirements",
+              "displayName": "Has Special Requirements",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Application Status",
+              "displayName": "Application Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Evaluating ",
+                  "value": "Evaluating "
+                },
+                {
+                  "name": " Tailored (Reviewing)",
+                  "value": " Tailored (Reviewing)"
+                },
+                {
+                  "name": " Low Match (Gaps Found)",
+                  "value": " Low Match (Gaps Found)"
+                },
+                {
+                  "name": "Applied ",
+                  "value": "Applied "
+                },
+                {
+                  "name": "Interview",
+                  "value": "Interview"
+                },
+                {
+                  "name": "Rejected ",
+                  "value": "Rejected "
+                },
+                {
+                  "name": "Ignored/Ghosted",
+                  "value": "Ignored/Ghosted"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        496
+      ],
+      "id": "f63317ba-d0d1-4545-8e18-4c50981090f0",
+      "name": "Low Match Job",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "m23YBcgxAxTGAgpM",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -3152,
+        624
+      ],
+      "id": "e4f53404-9b92-4ce3-bdfe-b0c227e557c5",
+      "name": "Groq Chat Model3",
+      "credentials": {
+        "groqApi": {
+          "id": "d6n4kXVbqtL1sRxp",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -2992,
+        624
+      ],
+      "id": "c747a768-768f-4122-93b2-3c5d1e719350",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "is Valid URL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get my knowledge base": {
+      "main": [
+        [
+          {
+            "node": "Context Expander",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Job Scraper",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Tool Scraper": {
+      "ai_tool": [
+        [
+          {
+            "node": "Job Scraper",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Job Analyst",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Scraper": {
+      "main": [
+        [
+          {
+            "node": "Job Scraper Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Job Analyst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Analyst": {
+      "main": [
+        [
+          {
+            "node": "Job Analysis Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "passed for resume creation?": {
+      "main": [
+        [
+          {
+            "node": "Resume Writer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Project Gap Architect",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Resume Writer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "does file exists?": {
+      "main": [
+        [
+          {
+            "node": "Delete a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Resume Copy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Scraper Details": {
+      "main": [
+        [
+          {
+            "node": "have payload?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Writer": {
+      "main": [
+        [
+          {
+            "node": "Resume Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Resume Copy": {
+      "main": [
+        [
+          {
+            "node": "30 Seconds Delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Resume File": {
+      "main": [
+        [
+          {
+            "node": "does file exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create or Update Company": {
+      "main": [
+        [
+          {
+            "node": "Create or Update Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create or Update Job": {
+      "main": [
+        [
+          {
+            "node": "Get my knowledge base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit the Resume": {
+      "main": [
+        [
+          {
+            "node": "Proposal Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a file": {
+      "main": [
+        [
+          {
+            "node": "Create Resume Copy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Details": {
+      "main": [
+        [
+          {
+            "node": "Search Resume File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Analysis Details": {
+      "main": [
+        [
+          {
+            "node": "passed for resume creation?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "60 Seconds Delay": {
+      "main": [
+        [
+          {
+            "node": "Job Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Resume Writer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Job Analyst",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Resume Writer",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser3": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Proposal Writer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Proposal Writer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Proposal Writer",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Proposal Writer": {
+      "main": [
+        [
+          {
+            "node": "Proposal Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Proposal Details": {
+      "main": [
+        [
+          {
+            "node": "Log Job Analysis in Airtable1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Job Analysis in Airtable1": {
+      "main": [
+        [
+          {
+            "node": "Tailored Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Job Analysis in Airtable": {
+      "main": [
+        [
+          {
+            "node": "Low Match Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "have payload?": {
+      "main": [
+        [
+          {
+            "node": "Create or Update Company",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Alert for Block Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "is Valid URL?": {
+      "main": [
+        [
+          {
+            "node": "60 Seconds Delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "30 Seconds Delay": {
+      "main": [
+        [
+          {
+            "node": "Edit the Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Expander": {
+      "main": [
+        [
+          {
+            "node": "Job Analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Context Expander",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser4": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Context Expander",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser5": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Project Gap Architect",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Project Gap Architect": {
+      "main": [
+        [
+          {
+            "node": "Gap Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Project Gap Architect",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gap Details": {
+      "main": [
+        [
+          {
+            "node": "Log Job Analysis in Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Context Expander",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Project Gap Architect",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Tailored Job": {
+      "main": [
+        [
+          {
+            "node": "High Job Match Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Low Match Job": {
+      "main": [
+        [
+          {
+            "node": "Low Job Match Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Job Scraper",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Job Scraper",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "5a4164b8-a7cc-4e87-a20e-48612cd42357",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-06-30T05:36:59.885Z",
+      "createdAt": "2026-06-30T05:36:59.885Z",
+      "role": "workflow:owner",
+      "workflowId": "n0LqXtPQ9m3Oub2j",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
