@@ -1,0 +1,192 @@
+{
+  "updatedAt": "2026-08-20T10:04:51.066Z",
+  "createdAt": "2026-08-20T10:01:23.612Z",
+  "id": "Y6ybBiRrFead1ZBW",
+  "name": "generate-interview",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "21728276-8988-4f66-bf1c-bbaed3a1b4d3",
+              "name": "job_Id",
+              "value": "={{ $json.body.jobId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -768,
+        -16
+      ],
+      "id": "c8704847-6be1-4d76-93c7-38418a5a2c62",
+      "name": "Normalize Data"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Prepare me for an interview for this job.\n\nJOB TITLE:\n{{ $json.job_title }}\n\nCOMPANY:\n{{ $json.company }}\n\nJOB DESCRIPTION:\n{{ $json.job_description }}\n\nJOB ANALYSIS:\n{{ JSON.stringify($json.job_analysis) }}\n\nCANDIDATE CAREER PROFILE:\n{{ JSON.stringify($json.career_profile) }}\n\nCreate the most important interview questions and suggested answers for this specific job.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are LerrieGPT's Interview Coach.\n\nPrepare the candidate for an interview using the target job, Job Analysis, and Career Profile.\n\nRules:\n- Use only verified candidate information.\n- Never invent examples or experience.\n- Focus on the most important requirements of the job.\n- Include technical, behavioral, experience, and scenario questions when relevant.\n- Focus on important skill gaps.\n- Use STAR structure for behavioral answers when appropriate.\n- Suggested answers must be based on real candidate evidence.\n- Keep the preparation focused rather than generating a huge question bank.\n\nReturn only the structured output requested by the system."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -272,
+        -64
+      ],
+      "id": "9ff07a5f-61a7-4fa2-9cea-752922eea069",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        144
+      ],
+      "id": "75cb6714-f357-47db-b954-9b0fc8bc0f60",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "job_analyses",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "keyValue": "={{ $json.job_Id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -528,
+        -16
+      ],
+      "id": "92de6ef4-ddbd-482d-a349-15213f66a84c",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Bd3xbIztux10XD8H",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"interview_strategy\": \"Focus on demonstrating practical automation experience, API integration skills, problem solving, and the ability to learn tools quickly.\",\n  \"questions\": [\n    {\n      \"category\": \"Technical\",\n      \"question\": \"How have you used n8n in an automation project?\",\n      \"why_asked\": \"The role requires workflow automation experience.\",\n      \"key_points\": [\n        \"Explain the workflow\",\n        \"Explain API integrations\",\n        \"Explain how data was processed and routed\"\n      ],\n      \"suggested_answer\": \"I built an API-powered lead intelligence workflow in n8n that normalized incoming data, validated email addresses, enriched leads, scored them, and routed them based on their score.\"\n    },\n    {\n      \"category\": \"Behavioral\",\n      \"question\": \"Tell me about a time you solved a difficult technical problem.\",\n      \"why_asked\": \"The interviewer wants to understand your problem-solving process.\",\n      \"key_points\": [\n        \"Explain the problem\",\n        \"Explain your approach\",\n        \"Explain the result\"\n      ],\n      \"suggested_answer\": \"Use a real example from the Career Profile and explain the situation, action, and result.\"\n    }\n  ],\n  \"questions_to_ask\": [\n    \"What automation processes are currently the highest priority for the team?\",\n    \"How does the team measure the success of automation projects?\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -128,
+        144
+      ],
+      "id": "469e8a9a-0df6-4fe9-8ff7-8d9aa5ba5a3c",
+      "name": "Structured Output Parser"
+    }
+  ],
+  "connections": {
+    "Normalize Data": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "30dc8fe4-bfe6-49ec-8469-8a38625d13e6",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-08-20T10:01:23.612Z",
+      "createdAt": "2026-08-20T10:01:23.612Z",
+      "role": "workflow:owner",
+      "workflowId": "Y6ybBiRrFead1ZBW",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": [
+    {
+      "updatedAt": "2026-08-12T11:42:35.483Z",
+      "createdAt": "2026-08-12T11:42:35.483Z",
+      "id": "eixADrPjmKLKSvqp",
+      "name": "LerrieGPT"
+    }
+  ]
+}
