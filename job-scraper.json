@@ -1,0 +1,251 @@
+{
+  "updatedAt": "2026-06-16T06:07:36.178Z",
+  "createdAt": "2026-06-16T05:59:30.259Z",
+  "id": "Od9jPsylszzYV4Z1",
+  "name": "Job-Scraper",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"platform\": {\n      \"type\": \"string\",\n      \"enum\": [\"LinkedIn\", \"JobStreet\", \"Indeed\", \"OLJ PH\", \"Generic\"],\n      \"description\": \"The website where the job was posted. Use 'Generic' if the website is not LinkedIn, JobStreet, Indeed, or OLJ PH.\"\n    },\n    \"company_name\": {\n      \"type\": \"string\",\n      \"description\": \"The extracted name of the hiring company. Use 'Undisclosed' if missing.\"\n    },\n    \"job_title\": {\n      \"type\": \"string\",\n      \"description\": \"The official job or role title.\"\n    },\n    \"cleaned_job_description\": {\n      \"type\": \"string\",\n      \"description\": \"A single continuous clean string summarizing core responsibilities and tech stack rules. Strictly no newlines or bullet points.\"\n    },\n    \"search_keywords\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"An array containing exactly 5 relevant search keywords or phrases.\"\n    }\n  },\n  \"required\": [\"platform\", \"company_name\", \"job_title\", \"cleaned_job_description\", \"search_keywords\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -48,
+        144
+      ],
+      "id": "4e1aee71-f03c-4cc9-b7cf-c8050554d957",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxRetries": 3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        144
+      ],
+      "id": "98301dd7-4076-4815-9c66-0d71ee66b062",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "IUr59d6Tv6z7wMSs",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Use the tool to fetch the webpage content of this URL: {{ $json.chatInput }}. Once you get the webpage text, extract the data and format it exactly according to the structured output schema rules.\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an expert job market data extractor. Your job is to process raw webpage text from job postings and structure it perfectly.\n\nCRITICAL FORMATTING RULES:\n1. For the \"cleaned_job_description\" field, you MUST format the content as one single, continuous, unbroken paragraph of text. \n2. Absolutely NO newline characters (\\n), NO carriage returns (\\r), NO markdown bullet points (- or *), and NO numbered lists. \n3. If the original text has bullets or paragraphs, convert them into smooth, continuous sentences separated only by spaces and periods.\n4. For the \"platform\" field, inspect the source URL. If the URL is from LinkedIn, JobStreet, Indeed, or OnlineJobs.ph (OLJ PH), use that exact name. If the URL belongs to ANY other website, you MUST output 'Generic'.\n5. The entire output must be written strictly in clear, natural English. Do not introduce any foreign language characters or hallucinated text."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -240,
+        -112
+      ],
+      "id": "83afc317-9917-4bdf-be70-6908b723332c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://mcp.apify.com/?tools=actors,docs,apify/rag-web-browser,inatanli/onlinejobs-ph-scraper,blackfalcondata/seek-scraper,valig/indeed-jobs-scraper,apt_marble/linkedin-job-listings-scraper-by-url",
+        "authentication": "headerAuth",
+        "include": "selected",
+        "includeTools": [
+          "apify--rag-web-browser",
+          "inatanli--onlinejobs-ph-scraper",
+          "blackfalcondata--seek-scraper",
+          "valig--indeed-jobs-scraper",
+          "apt_marble--linkedin-job-listings-scraper-by-url",
+          "get-dataset-items"
+        ],
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        -176,
+        144
+      ],
+      "id": "02b47d47-9611-4593-ad8d-276da9ee836e",
+      "name": "MCP Tool Scraper",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Q5OG1XyWLgZn0fe9",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b0340fb5-9fed-43bc-bb6e-cf70efc742c6",
+              "name": "platform",
+              "value": "={{ $json.output.platform }}",
+              "type": "string"
+            },
+            {
+              "id": "6c2453ca-c76e-41cc-a702-ed9a4dac5fdd",
+              "name": "company_name",
+              "value": "={{ $json.output.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "a776bd74-2a5d-42f5-a2f0-6d33447b4ff2",
+              "name": "job_title",
+              "value": "={{ $json.output.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "2f244b9f-0677-449a-93c9-115c3c95e5c9",
+              "name": "cleaned_job_description",
+              "value": "={{ $json.output.cleaned_job_description }}",
+              "type": "string"
+            },
+            {
+              "id": "5cc01d8f-5093-4841-bae3-d26c36dece85",
+              "name": "search_keywords",
+              "value": "={{ $json.output.search_keywords }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        176,
+        -112
+      ],
+      "id": "37916d42-d379-4ab1-99b1-025420c9cb63",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "Job URL"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -784,
+        -48
+      ],
+      "id": "70146d81-310d-405b-b0b4-4d1d7d999016",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -560,
+        -48
+      ],
+      "id": "eaf0cc55-3d6a-48d0-908b-f0d0ded40fb9",
+      "name": "Edit Fields1"
+    }
+  ],
+  "connections": {
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Tool Scraper": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "fe10790e-1f40-4d51-8be7-c9178c760b7a",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-06-16T05:59:30.259Z",
+      "createdAt": "2026-06-16T05:59:30.259Z",
+      "role": "workflow:owner",
+      "workflowId": "Od9jPsylszzYV4Z1",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
