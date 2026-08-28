@@ -1,0 +1,2995 @@
+{
+  "updatedAt": "2026-08-27T14:15:30.706Z",
+  "createdAt": "2026-08-27T05:22:26.828Z",
+  "id": "VP5NGiQMeObJwL1g",
+  "name": "Dead Lead Reactivation - Full Workflow",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "621c066b-0cb4-4508-9b0d-585ca49fd116",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2544,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 615516188,
+          "mode": "list",
+          "cachedResultName": "leads_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=615516188"
+        },
+        "options": {}
+      },
+      "id": "d33177e1-af6d-4f8e-a7f9-3ded190b1172",
+      "name": "Read Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -2320,
+        -32
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1919360323,
+          "mode": "list",
+          "cachedResultName": "suppression_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=1919360323"
+        },
+        "options": {}
+      },
+      "id": "6e2219ff-edc6-433e-b5a2-0c1e26783db0",
+      "name": "Read Suppression",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -2320,
+        160
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "c83d9bba-4bc4-4a7e-adc4-823db57b1bda",
+      "name": "Merge Leads + Suppression",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -2096,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Safety cap: prevents a single run from processing an unbounded number of rows.\nconst MAX_LEADS_PER_RUN = 5000;\n\n// Statuses already set by Workflow B or C. If a lead is in one of these,\n// Workflow A leaves Status alone on re-run — this is what makes it safe to\n// re-run A later (e.g. weekly, to segment newly-added leads) without undoing\n// progress on leads already in the middle of a conversation.\nconst LOCKED_STATUSES = new Set([\n  'contacted',\n  'Hot Lead - Needs Human Follow-Up',\n  'Not Interested - Dead',\n  'Do Not Contact',\n  'suppressed'\n]);\n\n// Split the merged 133 items back into two groups using a column that only\n// exists on one sheet — no artificial tagging needed, so nothing can silently\n// fail to apply the tag.\nconst suppressionItems = items\n  .filter(i => i.json['Suppression Reason'] !== undefined)\n  .map(i => i.json);\n\nlet leadItems = items\n  .filter(i => i.json['Suppression Reason'] === undefined)\n  .map(i => i.json);\n\nconst suppressedEmails = new Set(suppressionItems.map(s => (s.Email || '').toLowerCase().trim()));\nconst suppressedPhones = new Set(suppressionItems.map(s => (s['Phone Number'] || '').replace(/\\D/g, '')));\n\nif (leadItems.length > MAX_LEADS_PER_RUN) {\n  leadItems = leadItems.slice(0, MAX_LEADS_PER_RUN);\n}\n\nreturn leadItems.map(lead => {\n  const email = (lead.Email || '').toLowerCase().trim();\n  const phoneDigits = (lead['Phone Number'] || '').replace(/\\D/g, '');\n  const isSuppressed = suppressedEmails.has(email) || suppressedPhones.has(phoneDigits);\n\n  const daysSince = Number(lead['Days Since Last Activity']) || 0;\n  let segment = 'Recent (0-6mo)';\n  if (daysSince > 365) segment = 'Old (12-24mo)';\n  else if (daysSince > 180) segment = 'Mid (6-12mo)';\n\n  const dealValue = Number(lead['Estimated Deal Value']) || 0;\n  const priority = dealValue >= 15000 ? 'High' : dealValue >= 6000 ? 'Medium' : 'Low';\n\n  const smsOk = lead['SMS Opt-In'] === 'Yes';\n  const emailOk = lead['Email Opt-In'] === 'Yes';\n\n  const currentStatus = lead['Status'] || '';\n  let status;\n\n  if (LOCKED_STATUSES.has(currentStatus)) {\n    status = currentStatus; // already in progress elsewhere — don't touch it\n  } else if (isSuppressed) {\n    status = 'suppressed';\n  } else if (!smsOk && !emailOk) {\n    status = 'no_consent_hold';\n  } else {\n    status = 'ready_for_outreach';\n  }\n\n  return {\n    json: {\n      ...lead,\n      'Segment': segment,\n      'Priority': priority,\n      'Status': status\n    }\n  };\n});"
+      },
+      "id": "661a9276-a1ba-4ee0-aa56-cff913e68640",
+      "name": "Segment & Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1872,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 615516188,
+          "mode": "list",
+          "cachedResultName": "leads_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=615516188"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Record ID": "={{ $json['Record ID'] }}",
+            "First Name": "={{ $json['First Name'] }}",
+            "Last Name": "={{ $json['Last Name'] }}",
+            "Email": "={{ $json.Email }}",
+            "Phone Number": "={{ $json['Phone Number'] }}",
+            "City": "={{ $json.City }}",
+            "State/Region": "={{ $json['State/Region'] }}",
+            "Lead Status": "={{ $json['Lead Status'] }}",
+            "Lifecycle Stage": "={{ $json['Lifecycle Stage'] }}",
+            "Original Source": "={{ $json['Original Source'] }}",
+            "Create Date": "={{ $json['Create Date'] }}",
+            "Last Activity Date": "={{ $json['Last Activity Date'] }}",
+            "Days Since Last Activity": "={{ $json['Days Since Last Activity'] }}",
+            "Service Interested In": "={{ $json['Service Interested In'] }}",
+            "Estimated Deal Value": "={{ $json['Estimated Deal Value'] }}",
+            "SMS Opt-In": "={{ $json['SMS Opt-In'] }}",
+            "Email Opt-In": "={{ $json['Email Opt-In'] }}",
+            "Notes": "={{ $json.Notes }}",
+            "Segment": "={{ $json.Segment }}",
+            "Priority": "={{ $json.Priority }}",
+            "Status": "={{ $json.Status }}",
+            "Sent Message": "={{ $json['Sent Message'] }}",
+            "Last Contacted Date": "={{ $json['Last Contacted Date'] }}",
+            "Conversation Log": "={{ $json['Conversation Log'] }}"
+          },
+          "matchingColumns": [
+            "Record ID"
+          ],
+          "schema": [
+            {
+              "id": "Record ID",
+              "displayName": "Record ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "State/Region",
+              "displayName": "State/Region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Status",
+              "displayName": "Lead Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lifecycle Stage",
+              "displayName": "Lifecycle Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Original Source",
+              "displayName": "Original Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Create Date",
+              "displayName": "Create Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Activity Date",
+              "displayName": "Last Activity Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Days Since Last Activity",
+              "displayName": "Days Since Last Activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Service Interested In",
+              "displayName": "Service Interested In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estimated Deal Value",
+              "displayName": "Estimated Deal Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SMS Opt-In",
+              "displayName": "SMS Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Opt-In",
+              "displayName": "Email Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Segment",
+              "displayName": "Segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sent Message",
+              "displayName": "Sent Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Contacted Date",
+              "displayName": "Last Contacted Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Conversation Log",
+              "displayName": "Conversation Log",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "4758a087-8ad1-4df5-80da-52a0872a27e8",
+      "name": "Update Leads Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1648,
+        64
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "id": "bd9e0d73-9d18-41a0-9a28-8a049c335ae5",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2544,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const BATCH_LIMIT = 20; // keep sends small while testing\n\n// Only leads that are (a) flagged ready by Workflow A and (b) have actually\n// opted in to EMAIL specifically. A lead could be 'ready_for_outreach' with\n// SMS-only consent — since we're email-only now, those are correctly\n// skipped here rather than emailed without consent for that channel.\nconst ready = items.filter(item =>\n  item.json['Status'] === 'ready_for_outreach' &&\n  item.json['Email Opt-In'] === 'Yes'\n);\nreturn ready.slice(0, BATCH_LIMIT);"
+      },
+      "id": "51fb4eb8-d594-472c-9395-346a81c6701a",
+      "name": "Filter Ready & Cap Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2096,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull the original lead details by sequence position\nconst originalLeads = $('Filter Ready & Cap Batch').all().map(i => i.json);\n\nreturn items.map((item, idx) => {\n  const lead = originalLeads[idx] || {};\n  \n  // Extract the cleanly parsed fields directly from the LLM output object\n  const outputData = item.json?.output || {};\n\n  return {\n    json: {\n      ...lead, // Keeps your row ID, email address, etc.\n      emailSubject: outputData.subject || 'Following up on your project',\n      emailBody: outputData.body || ''\n    }\n  };\n});\n"
+      },
+      "id": "6093b394-943b-42ff-8e4f-fea40314ce53",
+      "name": "Parse AI Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1296,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "=iloveyou123xc@gmail.com",
+        "subject": "={{ $json.emailSubject }}",
+        "message": "={{ $json.emailBody }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "ac9a6bac-1be8-4d0e-86b7-a1dad2147577",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1072,
+        680
+      ],
+      "webhookId": "0c646fe3-caa0-4081-910d-ff9ae08d30d6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 615516188,
+          "mode": "list",
+          "cachedResultName": "leads_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=615516188"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Record ID": "={{ $('Parse AI Email').item.json['Record ID'] }}",
+            "First Name": "={{ $('Parse AI Email').item.json['First Name'] }}",
+            "Last Name": "={{ $('Parse AI Email').item.json['Last Name'] }}",
+            "Email": "={{ $('Parse AI Email').item.json.Email }}",
+            "Phone Number": "={{ $('Parse AI Email').item.json['Phone Number'] }}",
+            "City": "={{ $('Parse AI Email').item.json.City }}",
+            "State/Region": "={{ $('Parse AI Email').item.json['State/Region'] }}",
+            "Lead Status": "={{ $('Parse AI Email').item.json['Lead Status'] }}",
+            "Lifecycle Stage": "={{ $('Parse AI Email').item.json['Lifecycle Stage'] }}",
+            "Original Source": "={{ $('Parse AI Email').item.json['Original Source'] }}",
+            "Create Date": "={{ $('Parse AI Email').item.json['Create Date'] }}",
+            "Last Activity Date": "={{ $('Parse AI Email').item.json['Last Activity Date'] }}",
+            "Days Since Last Activity": "={{ $('Parse AI Email').item.json['Days Since Last Activity'] }}",
+            "Service Interested In": "={{ $('Parse AI Email').item.json['Service Interested In'] }}",
+            "Estimated Deal Value": "={{ $('Parse AI Email').item.json['Estimated Deal Value'] }}",
+            "SMS Opt-In": "={{ $('Parse AI Email').item.json['SMS Opt-In'] }}",
+            "Email Opt-In": "={{ $('Parse AI Email').item.json['Email Opt-In'] }}",
+            "Notes": "={{ $('Parse AI Email').item.json.Notes }}",
+            "Segment": "={{ $('Parse AI Email').item.json.Segment }}",
+            "Priority": "={{ $('Parse AI Email').item.json.Priority }}",
+            "Status": "={{ $('Parse AI Email').item.json.Status }}",
+            "Sent Message": "=Subject: {{ $('Parse AI Email').item.json.emailSubject }} | Message: {{ $('Parse AI Email').item.json.emailBody.replace(/\\n+/g, ' ') }}",
+            "Last Contacted Date": "={{ new Date().toISOString().split('T')[0] }}",
+            "Conversation Log": "={{ $('Parse AI Email').item.json['Conversation Log'] }}",
+            "row_number": 0
+          },
+          "matchingColumns": [
+            "Record ID"
+          ],
+          "schema": [
+            {
+              "id": "Record ID",
+              "displayName": "Record ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "State/Region",
+              "displayName": "State/Region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Status",
+              "displayName": "Lead Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lifecycle Stage",
+              "displayName": "Lifecycle Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Original Source",
+              "displayName": "Original Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Create Date",
+              "displayName": "Create Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Activity Date",
+              "displayName": "Last Activity Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Days Since Last Activity",
+              "displayName": "Days Since Last Activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Service Interested In",
+              "displayName": "Service Interested In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estimated Deal Value",
+              "displayName": "Estimated Deal Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SMS Opt-In",
+              "displayName": "SMS Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Opt-In",
+              "displayName": "Email Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Segment",
+              "displayName": "Segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sent Message",
+              "displayName": "Sent Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Contacted Date",
+              "displayName": "Last Contacted Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Conversation Log",
+              "displayName": "Conversation Log",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "8a1e1f94-817a-4f9a-88c1-0eda7b856176",
+      "name": "Update Leads Sheet - Mark Contacted",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -848,
+        680
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 615516188,
+          "mode": "list",
+          "cachedResultName": "leads_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=615516188"
+        },
+        "options": {}
+      },
+      "id": "32733cf4-15ad-4d3e-b4de-5aaaf85189b2",
+      "name": "Read Leads1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -2320,
+        680
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1640,
+        904
+      ],
+      "id": "1a7676cd-cead-4514-b8c5-1d26771b7485",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"subject\": {\n      \"type\": \"string\",\n      \"description\": \"A natural, warm, and compelling email subject line. Do not use emojis.\"\n    },\n    \"body\": {\n      \"type\": \"string\",\n      \"description\": \"The email body, kept under 120 words, personalized using the lead details, ending with a soft, low-pressure question or call to action.\"\n    }\n  },\n  \"required\": [\n    \"subject\",\n    \"body\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -1512,
+        904
+      ],
+      "id": "65c3b331-6dd3-4fc5-957a-a55f1cd78b38",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1872,
+        680
+      ],
+      "id": "9a1166a6-9220-4ac0-9853-e2a768f51c3f",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0AT7ACQHAS",
+          "mode": "list",
+          "cachedResultName": "lead-alerts"
+        },
+        "text": "=🚀 *Re-engagement Batch Complete*\n\nAll cold leads have been successfully processed!\n• *Total Handled:* {{ $json.length }} leads\n• *AI Engine:* Gemini 2.5 Flash\n• *Action Taken:* Personalized emails generated, sent via Gmail, and Google Sheet updated.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        -1584,
+        384
+      ],
+      "id": "60d849d2-8c3a-449f-a390-62b94c285cc7",
+      "name": "Send a message",
+      "webhookId": "05325a2d-070d-49bb-8e49-2af958b5ccb8",
+      "credentials": {
+        "slackApi": {
+          "id": "jcz6WXPrVEg76l77",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -624,
+        804
+      ],
+      "id": "c8e30129-79ed-4626-b20b-7fd3cdf18c48",
+      "name": "Wait",
+      "webhookId": "eef82c34-4220-4a3d-8a8f-ea34cd283d66"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "-from:me"
+        },
+        "options": {}
+      },
+      "id": "36f7b7ea-2e95-4127-8a99-6109c3aa62c6",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2544,
+        1316
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const msg = item.json;\n  \n  // 1. Target the nested address property directly from the Gmail schema\n  let fromEmail = '';\n  if (msg.from && msg.from.value && msg.from.value[0] && msg.from.value[0].address) {\n    fromEmail = msg.from.value[0].address;\n  } else if (msg.headers && msg.headers.from) {\n    // Fallback parser if pulling headers raw\n    const headerString = String(msg.headers.from);\n    const emailMatch = headerString.match(/<([^>]+)>/);\n    fromEmail = emailMatch ? emailMatch[1] : headerString;\n  }\n\n  // 2. Clean formatting variables safely\n  fromEmail = String(fromEmail).toLowerCase().trim();\n\n  return {\n    json: {\n      fromEmail,\n      subject: msg.subject || '',\n      inboundMessage: msg.text || msg.snippet || '',\n      gmailMessageId: msg.id || ''\n    }\n  };\n});\n"
+      },
+      "id": "4dec0f5c-d979-4af5-92b7-831f6a90bb20",
+      "name": "Normalize Inbound Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2320,
+        1316
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 615516188,
+          "mode": "list",
+          "cachedResultName": "leads_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=615516188"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Email",
+              "lookupValue": "={{ $json.fromEmail }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "067a340a-eb4e-40b2-96cd-728338011e0e",
+      "name": "Find Lead by Email",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -2096,
+        1316
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inbound = $('Normalize Inbound Payload').first().json;\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    fromEmail: inbound.fromEmail,\n    subject: inbound.subject,\n    inboundMessage: inbound.inboundMessage,\n    gmailMessageId: inbound.gmailMessageId\n  }\n}));"
+      },
+      "id": "ba73e15f-7ff3-4955-a3f3-35350a423887",
+      "name": "Merge Lead + Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1872,
+        1316
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Same fix as Workflow B: after the HTTP Request node, $json is Claude's raw\n// API response, not the lead+message data. Pull the original back in by\n// position from the node right before the HTTP call.\nconst originalItems = $('Merge Lead + Message').all().map(i => i.json);\n\nreturn items.map((item, idx) => {\n  const original = originalItems[idx] || {};\n  const raw = item.json?.content?.[0]?.text || '{}';\n  const cleaned = raw.replace(/```json|```/g, '').trim();\n\n  let parsed;\n  try {\n    parsed = JSON.parse(cleaned);\n  } catch (e) {\n    parsed = { intent: 'question', reply_text: '' };\n  }\n\n  return {\n    json: {\n      ...original,\n      intent: parsed.intent,\n      reply_text: parsed.reply_text || ''\n    }\n  };\n});"
+      },
+      "id": "c0d9923c-5731-44df-ad05-0cdc0ce5639b",
+      "name": "Parse Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1296,
+        1316
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Reply Intent Classification').item.json.output.intent }}",
+                    "rightValue": "STOP",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "44d7ef18-4267-4656-a38c-e81b725f2af8"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "STOP"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Reply Intent Classification').item.json.output.intent }}",
+                    "rightValue": "interested",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "0680dbdb-25ca-4744-8863-c5d5b8f6c1f8"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "interested"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Reply Intent Classification').item.json.output.intent }}",
+                    "rightValue": "not_interested",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "99be7457-c773-4dce-a1a5-bfd37729de00"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "not_interested"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Reply Intent Classification').item.json.output.intent }}",
+                    "rightValue": "question",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "02db8f77-3fd7-4945-a3da-57810a71f576"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "question"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "6e42d4fc-04fd-44b1-9dde-ba685081f63d",
+      "name": "Route by Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -1072,
+        1268
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1919360323,
+          "mode": "list",
+          "cachedResultName": "suppression_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=1919360323"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Record ID": "={{ $('Parse Classification').item.json['Record ID'] }}",
+            "Email": "={{ $('Parse Classification').item.json.Email }}",
+            "Phone Number": "={{ $('Parse Classification').item.json['Phone Number'] }}",
+            "Suppression Channel": "Email",
+            "Suppression Reason": "Replied unsubscribe/stop to email",
+            "Date Added": "={{ $now.format('yyyy-MM-dd') }}",
+            "Notes": "Auto-added by Workflow C on STOP reply."
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Record ID",
+              "displayName": "Record ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Suppression Channel",
+              "displayName": "Suppression Channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Suppression Reason",
+              "displayName": "Suppression Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date Added",
+              "displayName": "Date Added",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b4292528-6186-4537-880b-9dd4a54abeaf",
+      "name": "Append to Suppression",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -848,
+        1028
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 615516188,
+          "mode": "list",
+          "cachedResultName": "leads_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=615516188"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Record ID": "={{ $json['Record ID'] }}",
+            "Status": "Do Not Contact",
+            "row_number": 0,
+            "First Name": "={{ $('Parse Classification').item.json['First Name'] }}",
+            "Last Name": "={{ $('Parse Classification').item.json['Last Name'] }}",
+            "Email": "={{ $('Parse Classification').item.json.Email }}",
+            "Phone Number": "={{ $('Parse Classification').item.json['Phone Number'] }}",
+            "City": "={{ $('Parse Classification').item.json.City }}",
+            "State/Region": "={{ $('Parse Classification').item.json['State/Region'] }}",
+            "Lead Status": "={{ $('Parse Classification').item.json['Lead Status'] }}",
+            "Lifecycle Stage": "={{ $('Parse Classification').item.json['Lifecycle Stage'] }}",
+            "Original Source": "={{ $('Parse Classification').item.json['Original Source'] }}",
+            "Create Date": "={{ $('Parse Classification').item.json['Create Date'] }}",
+            "Last Activity Date": "={{ $('Parse Classification').item.json['Last Activity Date'] }}",
+            "Days Since Last Activity": "={{ $('Parse Classification').item.json['Days Since Last Activity'] }}",
+            "Service Interested In": "={{ $('Parse Classification').item.json['Service Interested In'] }}",
+            "Estimated Deal Value": "={{ $('Parse Classification').item.json['Estimated Deal Value'] }}",
+            "SMS Opt-In": "={{ $('Parse Classification').item.json['SMS Opt-In'] }}",
+            "Email Opt-In": "={{ $('Parse Classification').item.json['Email Opt-In'] }}",
+            "Notes": "={{ $('Parse Classification').item.json.Notes }}",
+            "Segment": "={{ $('Parse Classification').item.json.Segment }}",
+            "Priority": "={{ $('Parse Classification').item.json.Priority }}",
+            "Sent Message": "={{ $('Parse Classification').item.json['Sent Message'] }}",
+            "Last Contacted Date": "={{ $('Parse Classification').item.json['Last Contacted Date'] }}",
+            "Conversation Log": "={{ ($json['Conversation Log'] ? $json['Conversation Log'] + ' | ' : '') + new Date().toISOString().split('T')[0] + ' - Lead: ' + $json.inboundMessage.replace(/\\n+/g, ' ') + ' | System: Removed from list / Suppressed' }}"
+          },
+          "matchingColumns": [
+            "Record ID"
+          ],
+          "schema": [
+            {
+              "id": "Record ID",
+              "displayName": "Record ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "State/Region",
+              "displayName": "State/Region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead Status",
+              "displayName": "Lead Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lifecycle Stage",
+              "displayName": "Lifecycle Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Original Source",
+              "displayName": "Original Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Create Date",
+              "displayName": "Create Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last Activity Date",
+              "displayName": "Last Activity Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Days Since Last Activity",
+              "displayName": "Days Since Last Activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Service Interested In",
+              "displayName": "Service Interested In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Estimated Deal Value",
+              "displayName": "Estimated Deal Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "SMS Opt-In",
+              "displayName": "SMS Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email Opt-In",
+              "displayName": "Email Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Segment",
+              "displayName": "Segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sent Message",
+              "displayName": "Sent Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last Contacted Date",
+              "displayName": "Last Contacted Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Conversation Log",
+              "displayName": "Conversation Log",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "d6482237-2157-444f-a857-a7abd218b293",
+      "name": "Update Lead - Do Not Contact",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -624,
+        1028
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 615516188,
+          "mode": "list",
+          "cachedResultName": "leads_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=615516188"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Record ID": "={{ $json['Record ID'] }}",
+            "First Name": "={{ $json['First Name'] }}",
+            "Last Name": "={{ $json['Last Name'] }}",
+            "Email": "={{ $json.Email }}",
+            "Phone Number": "={{ $json['Phone Number'] }}",
+            "City": "={{ $json.City }}",
+            "State/Region": "={{ $json['State/Region'] }}",
+            "Lead Status": "={{ $json['Lead Status'] }}",
+            "Lifecycle Stage": "={{ $json['Lifecycle Stage'] }}",
+            "Original Source": "={{ $json['Original Source'] }}",
+            "Create Date": "={{ $json['Create Date'] }}",
+            "Last Activity Date": "={{ $json['Last Activity Date'] }}",
+            "Days Since Last Activity": "={{ $json['Days Since Last Activity'] }}",
+            "Service Interested In": "={{ $json['Service Interested In'] }}",
+            "Estimated Deal Value": "={{ $json['Estimated Deal Value'] }}",
+            "SMS Opt-In": "={{ $json['SMS Opt-In'] }}",
+            "Email Opt-In": "={{ $json['Email Opt-In'] }}",
+            "Notes": "={{ $json.Notes }}",
+            "Segment": "={{ $json.Segment }}",
+            "Priority": "={{ $json.Priority }}",
+            "Status": "={{ $json.Status }}",
+            "Sent Message": "={{ $json['Sent Message'] }}",
+            "Last Contacted Date": "={{ $json['Last Contacted Date'] }}",
+            "Conversation Log": "={{ ($json['Conversation Log'] ? $json['Conversation Log'] + ' | ' : '') + new Date().toISOString().split('T')[0] + ' - Lead: ' + $json.inboundMessage.replace(/\\n+/g, ' ') + ' | System: Flagged as Hot Lead for Human Follow-Up' }}"
+          },
+          "matchingColumns": [
+            "Record ID"
+          ],
+          "schema": [
+            {
+              "id": "Record ID",
+              "displayName": "Record ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "State/Region",
+              "displayName": "State/Region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Status",
+              "displayName": "Lead Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lifecycle Stage",
+              "displayName": "Lifecycle Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Original Source",
+              "displayName": "Original Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Create Date",
+              "displayName": "Create Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Activity Date",
+              "displayName": "Last Activity Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Days Since Last Activity",
+              "displayName": "Days Since Last Activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Service Interested In",
+              "displayName": "Service Interested In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estimated Deal Value",
+              "displayName": "Estimated Deal Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SMS Opt-In",
+              "displayName": "SMS Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Opt-In",
+              "displayName": "Email Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Segment",
+              "displayName": "Segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sent Message",
+              "displayName": "Sent Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Contacted Date",
+              "displayName": "Last Contacted Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Conversation Log",
+              "displayName": "Conversation Log",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "df7bf763-beb2-4ace-a787-185dad283d76",
+      "name": "Update Lead - Hot Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -848,
+        1220
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 615516188,
+          "mode": "list",
+          "cachedResultName": "leads_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=615516188"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Record ID": "={{ $json['Record ID'] }}",
+            "Status": "Not Interested - Dead",
+            "row_number": 0,
+            "First Name": "={{ $('Parse Classification').item.json['First Name'] }}",
+            "Last Name": "={{ $('Parse Classification').item.json['Last Name'] }}",
+            "Email": "={{ $('Parse Classification').item.json.Email }}",
+            "Phone Number": "={{ $('Parse Classification').item.json['Phone Number'] }}",
+            "City": "={{ $('Parse Classification').item.json.City }}",
+            "State/Region": "={{ $('Parse Classification').item.json['State/Region'] }}",
+            "Lead Status": "={{ $('Parse Classification').item.json['Lead Status'] }}",
+            "Lifecycle Stage": "={{ $('Parse Classification').item.json['Lifecycle Stage'] }}",
+            "Original Source": "={{ $('Parse Classification').item.json['Original Source'] }}",
+            "Create Date": "={{ $('Parse Classification').item.json['Create Date'] }}",
+            "Last Activity Date": "={{ $('Parse Classification').item.json['Last Activity Date'] }}",
+            "Days Since Last Activity": "={{ $('Parse Classification').item.json['Days Since Last Activity'] }}",
+            "Service Interested In": "={{ $('Parse Classification').item.json['Service Interested In'] }}",
+            "Estimated Deal Value": "={{ $('Parse Classification').item.json['Estimated Deal Value'] }}",
+            "SMS Opt-In": "={{ $('Parse Classification').item.json['SMS Opt-In'] }}",
+            "Email Opt-In": "={{ $('Parse Classification').item.json['Email Opt-In'] }}",
+            "Notes": "={{ $('Parse Classification').item.json.Notes }}",
+            "Segment": "={{ $('Parse Classification').item.json.Segment }}",
+            "Priority": "={{ $('Parse Classification').item.json.Priority }}",
+            "Sent Message": "={{ $('Parse Classification').item.json['Sent Message'] }}",
+            "Last Contacted Date": "={{ $('Parse Classification').item.json['Last Contacted Date'] }}",
+            "Conversation Log": "={{ ($json['Conversation Log'] ? $json['Conversation Log'] + ' | ' : '') + new Date().toISOString().split('T')[0] + ' - Lead: ' + $json.inboundMessage.replace(/\\n+/g, ' ') + ' | System: Removed from list / Suppressed' }}"
+          },
+          "matchingColumns": [
+            "Record ID"
+          ],
+          "schema": [
+            {
+              "id": "Record ID",
+              "displayName": "Record ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "State/Region",
+              "displayName": "State/Region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead Status",
+              "displayName": "Lead Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lifecycle Stage",
+              "displayName": "Lifecycle Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Original Source",
+              "displayName": "Original Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Create Date",
+              "displayName": "Create Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last Activity Date",
+              "displayName": "Last Activity Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Days Since Last Activity",
+              "displayName": "Days Since Last Activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Service Interested In",
+              "displayName": "Service Interested In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Estimated Deal Value",
+              "displayName": "Estimated Deal Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "SMS Opt-In",
+              "displayName": "SMS Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email Opt-In",
+              "displayName": "Email Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Segment",
+              "displayName": "Segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sent Message",
+              "displayName": "Sent Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last Contacted Date",
+              "displayName": "Last Contacted Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Conversation Log",
+              "displayName": "Conversation Log",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e49a16cc-5e84-4eb8-bd50-8a1fa0818e2d",
+      "name": "Update Lead - Not Interested",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -848,
+        1412
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.gmailMessageId }}",
+        "message": "={{ $json.reply_text }}",
+        "options": {}
+      },
+      "id": "dce30bb1-2a6f-4b2e-8fe3-45c806d9af45",
+      "name": "Send AI Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -848,
+        1604
+      ],
+      "webhookId": "6774f84b-fe01-45d3-960d-895d28b26519",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 615516188,
+          "mode": "list",
+          "cachedResultName": "leads_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17mYy0qCfdqppPJ_dWIQlpLw6qnvWfKo3AnJOcPRXo4w/edit#gid=615516188"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Record ID": "={{ $json['Record ID'] }}",
+            "Conversation Log": "={{ ($json['Conversation Log'] ? $json['Conversation Log'] + ' | ' : '') + new Date().toISOString().split('T')[0] + ' - Lead: ' + $json.inboundMessage.replace(/\\n+/g, ' ') + ' | AI: ' + ($json.reply_text ? $json.reply_text.replace(/\\n+/g, ' ') : 'None (Lead marked as ' + $json.intent + ')') }}",
+            "row_number": 0,
+            "First Name": "={{ $('Parse Classification').item.json['First Name'] }}",
+            "Last Name": "={{ $('Parse Classification').item.json['Last Name'] }}",
+            "Email": "={{ $('Parse Classification').item.json.Email }}",
+            "Phone Number": "={{ $('Parse Classification').item.json['Phone Number'] }}",
+            "City": "={{ $('Parse Classification').item.json.City }}",
+            "State/Region": "={{ $('Parse Classification').item.json['State/Region'] }}",
+            "Lead Status": "={{ $('Parse Classification').item.json['Lead Status'] }}",
+            "Lifecycle Stage": "={{ $('Parse Classification').item.json['Lifecycle Stage'] }}",
+            "Original Source": "={{ $('Parse Classification').item.json['Original Source'] }}",
+            "Create Date": "={{ $('Parse Classification').item.json['Create Date'] }}",
+            "Last Activity Date": "={{ $('Parse Classification').item.json['Last Activity Date'] }}",
+            "Days Since Last Activity": "={{ $('Parse Classification').item.json['Days Since Last Activity'] }}",
+            "Service Interested In": "={{ $('Parse Classification').item.json['Service Interested In'] }}",
+            "Estimated Deal Value": "={{ $('Parse Classification').item.json['Estimated Deal Value'] }}",
+            "SMS Opt-In": "={{ $('Parse Classification').item.json['SMS Opt-In'] }}",
+            "Email Opt-In": "={{ $('Parse Classification').item.json['Email Opt-In'] }}",
+            "Notes": "={{ $('Parse Classification').item.json.Notes }}",
+            "Segment": "={{ $('Parse Classification').item.json.Segment }}",
+            "Priority": "={{ $('Parse Classification').item.json.Priority }}",
+            "Status": "={{ $('Parse Classification').item.json.Status }}",
+            "Sent Message": "={{ $('Parse Classification').item.json['Sent Message'] }}",
+            "Last Contacted Date": "={{ $('Parse Classification').item.json['Last Contacted Date'] }}"
+          },
+          "matchingColumns": [
+            "Record ID"
+          ],
+          "schema": [
+            {
+              "id": "Record ID",
+              "displayName": "Record ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "State/Region",
+              "displayName": "State/Region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead Status",
+              "displayName": "Lead Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lifecycle Stage",
+              "displayName": "Lifecycle Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Original Source",
+              "displayName": "Original Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Create Date",
+              "displayName": "Create Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last Activity Date",
+              "displayName": "Last Activity Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Days Since Last Activity",
+              "displayName": "Days Since Last Activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Service Interested In",
+              "displayName": "Service Interested In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Estimated Deal Value",
+              "displayName": "Estimated Deal Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "SMS Opt-In",
+              "displayName": "SMS Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email Opt-In",
+              "displayName": "Email Opt-In",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Segment",
+              "displayName": "Segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Sent Message",
+              "displayName": "Sent Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last Contacted Date",
+              "displayName": "Last Contacted Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Conversation Log",
+              "displayName": "Conversation Log",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "d23999f3-8eb3-4c2b-9d01-435d47ad9c86",
+      "name": "Update Conversation Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -624,
+        1604
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1640,
+        1540
+      ],
+      "id": "375e4c08-56fe-4b02-b73a-0715a5a744a4",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"intent\": {\n      \"type\": \"string\",\n      \"enum\": [\"STOP\", \"interested\", \"not_interested\", \"question\"],\n      \"description\": \"The exact categorization bucket matching the lead's email reply language.\"\n    },\n    \"reply_text\": {\n      \"type\": \"string\",\n      \"description\": \"A draft response under 120 words if intent is 'question'. Must be empty for all other intents.\"\n    }\n  },\n  \"required\": [\"intent\", \"reply_text\"]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -1512,
+        1540
+      ],
+      "id": "432f5b6e-2dbf-49f9-88d9-acd668cb9da0",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a short, warm re-engagement email to a lead who went cold. Refer to the provided details naturally to make it personal, avoid a hard sell, and do not use any emojis. Keep the email body under 120 words and end with a soft, low-pressure question.\n\nLead Details:\n- First Name: {{ $json[\"First Name\"] }}\n- Service Interested In: {{ $json[\"Service Interested In\"] }}\n- Original Source: {{ $json[\"Original Source\"] }}\n- Notes: {{ $json[\"Notes\"] }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an expert copywriter specializing in warm, personalized email outreach for home services companies. Your goal is to write a highly tailored, non-generic re-engagement email that feels like a 1-to-1 message from a local business owner."
+            }
+          ]
+        },
+        "batching": {
+          "batchSize": 1,
+          "delayBetweenBatches": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -1648,
+        680
+      ],
+      "id": "336bb2a2-a2ee-4a8a-b059-685bc463fc59",
+      "name": "Generate Personalize Message"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are classifying an inbound EMAIL reply from a home services lead who was contacted as part of a dead-lead reactivation campaign. \n\nLead Details & Inbound Context:\n- Lead's original service interest: {{ $json['Service Interested In'] }}\n- Email subject: \"{{ $json.subject }}\"\n- Inbound message body: \"{{ $json.inboundMessage }}\"\n\nClassify the intent as exactly one of these choices:\n- STOP: Any opt-out language (e.g., \"unsubscribe\", \"remove me\", \"stop emailing me\", \"do not contact\").\n- interested: Wants to move forward, book an appointment, get pricing, or continue the conversation positively.\n- not_interested: Polite or firm decline, no further interest.\n- question: Asking for specific info, hours, or clarification without a clear opt-in or opt-out signal yet.\n\nDrafting Rule:\nIf the intent is classified as 'question', draft a short, helpful 'reply_text' answering them or acknowledging their inquiry. Keep it under 120 words, no emojis, plain text, and do not include a signature. For all other intents, the 'reply_text' must be an empty string (\"\").\n",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an expert inbound lead classification assistant for a home services company. Your job is to analyze an incoming email reply from a previously dead lead and categorize their intent with 100% accuracy. You must strictly adhere to the classification guidelines and never invent information or output anything outside of the requested JSON structure."
+            }
+          ]
+        },
+        "batching": {
+          "batchSize": 1,
+          "delayBetweenBatches": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -1648,
+        1316
+      ],
+      "id": "cd2a069f-1874-439d-850f-1e7ac0d0620e",
+      "name": "Reply Intent Classification"
+    },
+    {
+      "parameters": {
+        "content": "# Segmentation",
+        "height": 80,
+        "width": 272,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        96
+      ],
+      "id": "6cb38cd0-c2e2-4b90-8ce1-e3e6b5332204",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# Outbound Sequence",
+        "height": 80,
+        "width": 368,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3024,
+        704
+      ],
+      "id": "f1c2d421-ce3c-4fb3-8776-5c4b5a16cd0e",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Inbound Reply Handling",
+        "height": 80,
+        "width": 416,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3072,
+        1344
+      ],
+      "id": "eaf0fa38-1f88-4e31-8e61-2d62a97b95d7",
+      "name": "Sticky Note2"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Leads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Suppression",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Leads": {
+      "main": [
+        [
+          {
+            "node": "Merge Leads + Suppression",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Suppression": {
+      "main": [
+        [
+          {
+            "node": "Merge Leads + Suppression",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Leads + Suppression": {
+      "main": [
+        [
+          {
+            "node": "Segment & Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Segment & Filter": {
+      "main": [
+        [
+          {
+            "node": "Update Leads Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Leads1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Ready & Cap Batch": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Update Leads Sheet - Mark Contacted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Leads1": {
+      "main": [
+        [
+          {
+            "node": "Filter Ready & Cap Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Personalize Message",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Personalize Message",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Personalize Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Leads Sheet - Mark Contacted": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Inbound Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Inbound Payload": {
+      "main": [
+        [
+          {
+            "node": "Find Lead by Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Lead by Email": {
+      "main": [
+        [
+          {
+            "node": "Merge Lead + Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Lead + Message": {
+      "main": [
+        [
+          {
+            "node": "Reply Intent Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Classification": {
+      "main": [
+        [
+          {
+            "node": "Route by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Intent": {
+      "main": [
+        [
+          {
+            "node": "Append to Suppression",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Lead - Hot Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Lead - Not Interested",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send AI Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Suppression": {
+      "main": [
+        [
+          {
+            "node": "Update Lead - Do Not Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send AI Reply": {
+      "main": [
+        [
+          {
+            "node": "Update Conversation Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Reply Intent Classification",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Reply Intent Classification",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Personalize Message": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply Intent Classification": {
+      "main": [
+        [
+          {
+            "node": "Parse Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "b49d42db-8eff-4f2a-91b5-2ae4eeff80a5",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-08-27T05:22:26.828Z",
+      "createdAt": "2026-08-27T05:22:26.828Z",
+      "role": "workflow:owner",
+      "workflowId": "VP5NGiQMeObJwL1g",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": [
+    {
+      "updatedAt": "2026-08-25T04:07:28.016Z",
+      "createdAt": "2026-08-25T04:07:28.016Z",
+      "id": "xeeTj944UymGSSBh",
+      "name": "Reactivation"
+    }
+  ]
+}
