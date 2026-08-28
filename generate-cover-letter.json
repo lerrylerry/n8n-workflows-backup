@@ -1,0 +1,192 @@
+{
+  "updatedAt": "2026-08-20T10:02:12.810Z",
+  "createdAt": "2026-08-20T09:59:34.447Z",
+  "id": "gmIYp3f1BfwjAPsF",
+  "name": "generate-cover-letter",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "21728276-8988-4f66-bf1c-bbaed3a1b4d3",
+              "name": "job_Id",
+              "value": "={{ $json.body.jobId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -640,
+        80
+      ],
+      "id": "760b2f01-9207-4bb4-a63e-c2b1154f5331",
+      "name": "Normalize Data"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a cover letter for this job.\n\nJOB TITLE:\n{{ $json.job_title }}\n\nCOMPANY:\n{{ $json.company }}\n\nJOB DESCRIPTION:\n{{ $json.job_description }}\n\nJOB ANALYSIS:\n{{ JSON.stringify($json.job_analysis) }}\n\nCANDIDATE CAREER PROFILE:\n{{ JSON.stringify($json.career_profile) }}\n\nCreate a concise and personalized cover letter using only verified information.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are LerrieGPT's Cover Letter Writer.\n\nCreate a concise and personalized cover letter for the target job.\n\nRules:\n- Use only verified information from the Career Profile.\n- Never invent experience, achievements, metrics, employers, or skills.\n- Connect the candidate's strongest relevant evidence to the job.\n- Do not simply repeat the resume.\n- Avoid generic AI language and clichés.\n- Sound natural, professional, and confident.\n- Keep the letter concise.\n\nReturn only the structured output requested by the system."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -144,
+        32
+      ],
+      "id": "e8da6220-686e-4ce4-aa2e-fa0349a23abd",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        240
+      ],
+      "id": "b1f6e752-5dbb-4402-b697-f8adbbd22566",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "job_analyses",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "keyValue": "={{ $json.job_Id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        80
+      ],
+      "id": "a238f17a-0c1c-4f1d-a399-c298c9e02f12",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Bd3xbIztux10XD8H",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"greeting\": \"Dear Hiring Manager,\",\n  \"body\": \"I am excited to apply for the AI Automation Specialist position. My experience building automation workflows, integrating APIs, and developing AI-powered processes aligns well with the role. Through projects such as my API-Powered Lead Intelligence System, I have developed practical experience connecting automation tools, APIs, data processing, and AI to solve business problems.\",\n  \"closing\": \"Thank you for considering my application. I would welcome the opportunity to discuss how my automation experience could contribute to your team.\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        240
+      ],
+      "id": "b4113b25-9d23-484b-aa90-d3ca21d38b36",
+      "name": "Structured Output Parser"
+    }
+  ],
+  "connections": {
+    "Normalize Data": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "0c51a6be-12b3-4c95-add2-c040df8d1477",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-08-20T09:59:34.447Z",
+      "createdAt": "2026-08-20T09:59:34.447Z",
+      "role": "workflow:owner",
+      "workflowId": "gmIYp3f1BfwjAPsF",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": [
+    {
+      "updatedAt": "2026-08-12T11:42:35.483Z",
+      "createdAt": "2026-08-12T11:42:35.483Z",
+      "id": "eixADrPjmKLKSvqp",
+      "name": "LerrieGPT"
+    }
+  ]
+}
