@@ -1,0 +1,858 @@
+{
+  "updatedAt": "2026-04-23T03:35:56.606Z",
+  "createdAt": "2026-04-21T02:21:11.846Z",
+  "id": "LJNolQWl92G0cwPr",
+  "name": "(Monday.com) Smart Follow-Up Engine",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        176,
+        -176
+      ],
+      "id": "5a6aeb86-c35e-4fe3-8140-e01e2e17523d",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "boardItem",
+        "operation": "getAll",
+        "boardId": "5027935673",
+        "groupId": "group_mm2keavr",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.mondayCom",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -176
+      ],
+      "id": "6321328e-b877-4880-96c3-aa7ddfef964b",
+      "name": "Get All Items in Monday.com",
+      "credentials": {
+        "mondayComApi": {
+          "id": "rFFQsfGVKcC4tfCT",
+          "name": "Monday.com account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d3414d5b-d389-4626-ba89-7dfced3bd852",
+              "name": "Pipeline_Status",
+              "value": "={{ $json.column_values[7].text }}",
+              "type": "string"
+            },
+            {
+              "id": "203aefc7-ae1d-49b3-abb8-91110d7040ea",
+              "name": "Next_Follow_Up_Date",
+              "value": "={{ $json.column_values[10].text }}",
+              "type": "string"
+            },
+            {
+              "id": "62e7036e-242b-435f-be6d-9f89a564d8e9",
+              "name": "Follow_Up_Count",
+              "value": "={{ $json.column_values[9]?.text || 0 }}",
+              "type": "string"
+            },
+            {
+              "id": "cd733f98-78b8-4d59-8a6f-565ac3b02522",
+              "name": "Name",
+              "value": "={{ $json.column_values[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "9dbdc51f-8260-4fcd-a46c-f36d4323b8a9",
+              "name": "Problem",
+              "value": "={{ $json.column_values[12].text }}",
+              "type": "string"
+            },
+            {
+              "id": "bf0a8773-52aa-4071-8042-c5c183ac44bd",
+              "name": "Email",
+              "value": "={{ $json.column_values[1].text }}",
+              "type": "string"
+            },
+            {
+              "id": "8e8d3b3c-5290-45fd-8eeb-f91e6839586d",
+              "name": "Item_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        -176
+      ],
+      "id": "687d12a3-a029-441e-bf9b-f9f844314357",
+      "name": "Mapped The Fields"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.Follow_Up_Count }}",
+                    "rightValue": "0",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2e5400d4-95da-4261-ba10-125d4e274922"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "First follow-up"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "66429a8d-c2aa-4811-8213-09553ce5a54f",
+                    "leftValue": "={{ $json.Follow_Up_Count }}",
+                    "rightValue": "1",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Second follow-up"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "ed8bc591-e808-4d2b-837f-8f1abf552aed",
+                    "leftValue": "={{ $json.Follow_Up_Count }}",
+                    "rightValue": "2",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Third follow-up"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1024,
+        -192
+      ],
+      "id": "6bf40110-56cc-44f6-b03d-8899f9e8b601",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1776,
+        -32
+      ],
+      "id": "7716504d-17dd-4a0d-8268-096a444e4d3f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "[ { \"output\": { \"type\": \"object\", \"properties\": { \"subject\": { \"type\": \"object\" }, \"body\": { \"type\": \"object\" } }, \"required\": [ \"subject\", \"body\" ] } } ]"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1920,
+        -32
+      ],
+      "id": "e1f2917e-85b0-4bc4-bc0d-d6ca7bcbb5e1",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "60a6327f-f027-4ef4-8302-fa6a44f26861",
+              "name": "User_Prompt",
+              "value": "Write a follow-up email (Day 3) for a MEDIUM lead.  Lead details: Name: {{name}} Problem: {{ problem}}  Goal: Provide a helpful insight or tip.",
+              "type": "string"
+            },
+            {
+              "id": "7e51c5f4-4af3-4953-9c7f-39ef4955c93f",
+              "name": "System_Prompt",
+              "value": "You are a consultant providing value without selling.  Style: - Helpful - Insightful - Practical  Goal: Give a useful tip or idea related to their problem.  No hard selling.  Rules: - subject must be a plain string (NOT an object) - body must be a plain string (NOT an object) - Do NOT wrap values inside { \"text\": ... } - Do NOT return nested objects - Do NOT include explanations - Do NOT use markdown or backticks  Output JSON only.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1392,
+        -384
+      ],
+      "id": "20b9e5ba-bcdb-440a-b153-b59353605a90",
+      "name": "Soft Intro Details for LLM"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "705197c4-75bb-4785-8e40-0421a5e24b7c",
+              "name": "User_Prompt",
+              "value": "=Write a Day 14 follow-up email.\n\nLead details:\nName: {{ Name }}\n\nGoal:\nGently check if they’re still interested.",
+              "type": "string"
+            },
+            {
+              "id": "d36e0567-839b-4526-ac2e-8fb7579ec3d1",
+              "name": "System_Prompt",
+              "value": "You are writing a polite follow-up.  Style: - Casual - Respectful - Light  Goal: Gently check in without pressure.  Rules: - subject must be a plain string (NOT an object) - body must be a plain string (NOT an object) - Do NOT wrap values inside { \"text\": ... } - Do NOT return nested objects - Do NOT include explanations - Do NOT use markdown or backticks  Output JSON only.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1392,
+        48
+      ],
+      "id": "7dbf168f-a23a-499e-a5a5-9355c6accf39",
+      "name": "Case study Details for LLM"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "705197c4-75bb-4785-8e40-0421a5e24b7c",
+              "name": "User_Prompt",
+              "value": "=Write a Day 7 follow-up email.\n\nLead details:\nName: {{ name }}\nProblem: {{ problem }}\n\nGoal:\nShow a real example or case study.",
+              "type": "string"
+            },
+            {
+              "id": "d36e0567-839b-4526-ac2e-8fb7579ec3d1",
+              "name": "System_Prompt",
+              "value": "You are an expert showing credibility through results.  Style: - Confident - Clear - Not braggy  Goal: Share a short case/example.  Rules: - subject must be a plain string (NOT an object) - body must be a plain string (NOT an object) - Do NOT wrap values inside { \"text\": ... } - Do NOT return nested objects - Do NOT include explanations - Do NOT use markdown or backticks  Output JSON only.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1392,
+        -176
+      ],
+      "id": "c1c4bdb6-da28-4ec9-b079-683b40519ac8",
+      "name": "Insight Details for LLM"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Prompt: {{ $json.User_Prompt }} \nName: {{ $('Mapped The Fields').item.json.Name }} \nProblem: {{ $('Mapped The Fields').item.json.Problem }}\n\nThe output must be in Valid JSON Format\n{\n  \"Subject\":\"The Subject\",\n  \"Message\":\"The Message\"\n}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "={{ $json.System_Prompt }}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1760,
+        -176
+      ],
+      "id": "11a779ca-d6a1-41e9-aedc-1a80f4da74c7",
+      "name": "Create a Email Message Content"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Mapped The Fields').item.json.Email }}",
+        "subject": "={{ $json.output.Subject }}",
+        "emailType": "text",
+        "message": "={{ $json.output.Message }}\n\nBest Regards,\nJohn",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2096,
+        -176
+      ],
+      "id": "7270410e-e466-44dd-b1b8-2c3235687a43",
+      "name": "Send Message to Lead",
+      "webhookId": "94256649-4774-4b09-9051-b20f673c15b4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "boardItem",
+        "operation": "changeMultipleColumnValues",
+        "boardId": "5027935673",
+        "itemId": "={{ $json.Item_id }}",
+        "columnValues": "={\n  \"text_mm2n6djp\": \"{{ (Number($json.Follow_Up_Count || 0) + 1).toString() }}\",\n  \"date\": {\n    \"date\": \"{{ DateTime.fromISO($json.Next_Follow_Up_Date).plus({days: 3}).toISODate() }}\"\n  },\n  \"color_mm2k44vn\": {\n    \"label\": \"Nurturing\"\n  }\n}\n"
+      },
+      "type": "n8n-nodes-base.mondayCom",
+      "typeVersion": 1,
+      "position": [
+        2896,
+        -416
+      ],
+      "id": "8d245f31-8deb-4dc5-a924-1b577aa0b51e",
+      "name": "Change multiple column values for a board item",
+      "credentials": {
+        "mondayComApi": {
+          "id": "rFFQsfGVKcC4tfCT",
+          "name": "Monday.com account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.Follow_Up_Count == 0 }}",
+                    "rightValue": "0",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "f588d76c-d256-4c27-8927-857b7e7c011f"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "b0bbcdf6-83f1-47cc-b315-b116bfa40263",
+                    "leftValue": "={{ $json.Follow_Up_Count == 1 }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "1f43e513-dfe0-426e-99cd-9ca92609a69b",
+                    "leftValue": "={{ $json.Follow_Up_Count == 2 }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2576,
+        -192
+      ],
+      "id": "a420e306-eb48-47d3-a664-5ab270cfb4e6",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "resource": "boardItem",
+        "operation": "changeMultipleColumnValues",
+        "boardId": "5027935673",
+        "itemId": "={{ $json.Item_id }}",
+        "columnValues": "={\n  \"text_mm2n6djp\": \"{{ (Number($json.Follow_Up_Count || 0) + 1).toString() }}\",\n  \"date\": {\n    \"date\": \"{{ DateTime.fromISO($json.Next_Follow_Up_Date).plus({days: 4}).toISODate() }}\"\n  }\n}\n"
+      },
+      "type": "n8n-nodes-base.mondayCom",
+      "typeVersion": 1,
+      "position": [
+        2896,
+        -176
+      ],
+      "id": "c0712eda-579f-42fb-a448-98a367b15bce",
+      "name": "Change multiple column values for a board item1",
+      "credentials": {
+        "mondayComApi": {
+          "id": "rFFQsfGVKcC4tfCT",
+          "name": "Monday.com account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "boardItem",
+        "operation": "changeMultipleColumnValues",
+        "boardId": "5027935673",
+        "itemId": "={{ $json.Item_id }}",
+        "columnValues": "={\n  \"text_mm2n6djp\": \"{{ (Number($json.Follow_Up_Count || 0) + 1).toString() }}\",\n  \"date\": {\n    \"date\": \"{{ DateTime.fromISO($json.Next_Follow_Up_Date).plus({days: 7}).toISODate() }}\"\n  },\n  \"color_mm2k44vn\": {\n    \"label\": \"Nurturing\"\n  }\n}\n"
+      },
+      "type": "n8n-nodes-base.mondayCom",
+      "typeVersion": 1,
+      "position": [
+        2896,
+        64
+      ],
+      "id": "1551a51e-d71f-4f96-a667-8a05f7783683",
+      "name": "Change multiple column values for a board item2",
+      "credentials": {
+        "mondayComApi": {
+          "id": "rFFQsfGVKcC4tfCT",
+          "name": "Monday.com account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d3414d5b-d389-4626-ba89-7dfced3bd852",
+              "name": "Pipeline_Status",
+              "value": "={{ $('Mapped The Fields').item.json.Pipeline_Status }}",
+              "type": "string"
+            },
+            {
+              "id": "203aefc7-ae1d-49b3-abb8-91110d7040ea",
+              "name": "Next_Follow_Up_Date",
+              "value": "={{ $('Mapped The Fields').item.json.Next_Follow_Up_Date }}",
+              "type": "string"
+            },
+            {
+              "id": "62e7036e-242b-435f-be6d-9f89a564d8e9",
+              "name": "Follow_Up_Count",
+              "value": "={{ $('Mapped The Fields').item.json.Follow_Up_Count }}",
+              "type": "string"
+            },
+            {
+              "id": "cd733f98-78b8-4d59-8a6f-565ac3b02522",
+              "name": "Name",
+              "value": "={{ $('Mapped The Fields').item.json.Name }}",
+              "type": "string"
+            },
+            {
+              "id": "9dbdc51f-8260-4fcd-a46c-f36d4323b8a9",
+              "name": "Problem",
+              "value": "={{ $('Mapped The Fields').item.json.Problem }}",
+              "type": "string"
+            },
+            {
+              "id": "bf0a8773-52aa-4071-8042-c5c183ac44bd",
+              "name": "Email",
+              "value": "={{ $('Mapped The Fields').item.json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "8e8d3b3c-5290-45fd-8eeb-f91e6839586d",
+              "name": "Item_id",
+              "value": "={{ $('Mapped The Fields').item.json.Item_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2336,
+        -176
+      ],
+      "id": "42bb631e-d188-4267-ad74-46fc9a3c885b",
+      "name": "Mapped Data for Monday"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1dad6ddd-908e-4874-ac65-d73582d71d9e",
+              "leftValue": "={{ $json.Pipeline_Status }}",
+              "rightValue": "Converted",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "e4617a24-74f1-4cce-901c-bb4cacd40d61",
+              "leftValue": "={{ $json.Next_Follow_Up_Date }}",
+              "rightValue": "={{ $now.toISODate() }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "beforeOrEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        800,
+        -176
+      ],
+      "id": "1483509a-610e-4552-a28b-0721dd90be61",
+      "name": "Filter Converted and Schedule Email Today"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get All Items in Monday.com",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Items in Monday.com": {
+      "main": [
+        [
+          {
+            "node": "Mapped The Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapped The Fields": {
+      "main": [
+        [
+          {
+            "node": "Filter Converted and Schedule Email Today",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Create a Email Message Content",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Create a Email Message Content",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Soft Intro Details for LLM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insight Details for LLM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Case study Details for LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Soft Intro Details for LLM": {
+      "main": [
+        [
+          {
+            "node": "Create a Email Message Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insight Details for LLM": {
+      "main": [
+        [
+          {
+            "node": "Create a Email Message Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Case study Details for LLM": {
+      "main": [
+        [
+          {
+            "node": "Create a Email Message Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a Email Message Content": {
+      "main": [
+        [
+          {
+            "node": "Send Message to Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Message to Lead": {
+      "main": [
+        [
+          {
+            "node": "Mapped Data for Monday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change multiple column values for a board item": {
+      "main": [
+        []
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Change multiple column values for a board item",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Change multiple column values for a board item1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Change multiple column values for a board item2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapped Data for Monday": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Converted and Schedule Email Today": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "Send Message to Lead": [
+      {
+        "json": {
+          "name": "First item",
+          "code": 1
+        }
+      },
+      {
+        "json": {
+          "name": "Second item",
+          "code": 2
+        }
+      }
+    ]
+  },
+  "versionId": "d46fe60d-a10f-4c89-8d04-67ad506c98c6",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-04-21T02:21:11.846Z",
+      "createdAt": "2026-04-21T02:21:11.846Z",
+      "role": "workflow:owner",
+      "workflowId": "LJNolQWl92G0cwPr",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
