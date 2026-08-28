@@ -1,0 +1,192 @@
+{
+  "updatedAt": "2026-08-20T10:05:48.023Z",
+  "createdAt": "2026-08-20T10:04:16.068Z",
+  "id": "0c7KI7tqossRkCmC",
+  "name": "generate-application-answer",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "21728276-8988-4f66-bf1c-bbaed3a1b4d3",
+              "name": "job_Id",
+              "value": "={{ $json.body.jobId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -720,
+        -16
+      ],
+      "id": "ab142877-7475-41a1-bae7-f4ab71edf15e",
+      "name": "Normalize Data"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Answer these job application questions.\n\nJOB TITLE:\n{{ $json.job_title }}\n\nCOMPANY:\n{{ $json.company }}\n\nJOB DESCRIPTION:\n{{ $json.job_description }}\n\nJOB ANALYSIS:\n{{ JSON.stringify($json.job_analysis) }}\n\nCANDIDATE CAREER PROFILE:\n{{ JSON.stringify($json.career_profile) }}\n\nAPPLICATION QUESTIONS:\n{{ JSON.stringify($json.application_questions) }}\n\nAnswer each question directly and honestly.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are LerrieGPT's Application Answer Assistant.\n\nAnswer job application questions using the candidate's Career Profile and the target job.\n\nRules:\n- Use only verified candidate information.\n- Never invent experience, achievements, metrics, employers, or qualifications.\n- Answer the exact question directly.\n- Use specific candidate evidence when available.\n- If the candidate lacks direct experience, be honest and use legitimate transferable experience.\n- Keep answers natural and concise.\n- Follow any provided word or character limit.\n\nReturn only the structured output requested by the system."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -224,
+        -64
+      ],
+      "id": "086cdb42-03ed-40aa-a963-e977be2f2ce0",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        144
+      ],
+      "id": "1aece3ce-068b-4068-a6ad-fc0333732aed",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "job_analyses",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "keyValue": "={{ $json.job_Id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -16
+      ],
+      "id": "095bbb45-1f4f-42f9-ae46-90b9258c4995",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Bd3xbIztux10XD8H",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"answers\": [\n    {\n      \"question\": \"Describe your experience with n8n.\",\n      \"answer\": \"I have built practical n8n automation workflows including lead enrichment, validation, scoring, routing, and AI-powered outreach. I have also worked with APIs, webhooks, Google Sheets, and other tools to connect different parts of the workflow.\",\n      \"evidence_used\": [\n        \"API-Powered Lead Intelligence System\",\n        \"n8n automation projects\"\n      ]\n    },\n    {\n      \"question\": \"Why are you interested in this role?\",\n      \"answer\": \"I am interested in the role because it aligns with my focus on automation, AI integrations, and building practical systems that improve business processes.\",\n      \"evidence_used\": [\n        \"Career goals\",\n        \"Automation projects\"\n      ]\n    }\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -80,
+        144
+      ],
+      "id": "54b265c5-4f28-4448-95f7-579edb977870",
+      "name": "Structured Output Parser"
+    }
+  ],
+  "connections": {
+    "Normalize Data": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "0847c2bf-8a22-4309-a0e9-02ed2df2aef8",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-08-20T10:04:16.068Z",
+      "createdAt": "2026-08-20T10:04:16.068Z",
+      "role": "workflow:owner",
+      "workflowId": "0c7KI7tqossRkCmC",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": [
+    {
+      "updatedAt": "2026-08-12T11:42:35.483Z",
+      "createdAt": "2026-08-12T11:42:35.483Z",
+      "id": "eixADrPjmKLKSvqp",
+      "name": "LerrieGPT"
+    }
+  ]
+}
