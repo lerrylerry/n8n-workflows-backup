@@ -1,0 +1,145 @@
+{
+  "updatedAt": "2026-06-05T10:02:17.910Z",
+  "createdAt": "2026-05-28T06:10:35.824Z",
+  "id": "tEGsZk1BYyHYfaWq",
+  "name": "Instant OLJ.ph Job Alerts",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "chatId": "-1003616902957",
+        "text": "==🚨 **New Automation Job Alert!**\n\n💼 **Role:** {{ $json.title }}\n💰 **Salary:** {{ $json.salary.raw }}\n⏱️ **Type:** {{ $json.employmentType }}\n🗓️ **Date Posted** {{ $json.postingDate.raw }}\n\n📝 **Summary:**\n{{ $json.description ? $json.description.substring(0, 250) + '...' : 'No description' }}\n\n🔗 [Click Here to Apply Directly]({{ $json.applicationUrl }})\n",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "618cf6d7-42f5-45b8-8c3a-175662d23859",
+      "name": "Notify the jobs",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1168,
+        -32
+      ],
+      "webhookId": "12c41d72-acca-45e8-ae7e-891d7d60eb5d",
+      "credentials": {
+        "telegramApi": {
+          "id": "sxJ5EL7mfUrwZ2n3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "olj-jobs-webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1616,
+        -32
+      ],
+      "id": "d40d6f0e-3006-4c44-9573-f527b46d73b3",
+      "name": "Webhook",
+      "webhookId": "96970dc5-22dd-482f-a434-dc1c29388f49"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8c54ddf9-c19c-438a-879e-4272f93f9477",
+              "leftValue": "={{ $json.title }}",
+              "rightValue": "(ai\nautomation\nn8n\nmake\\.com\nzapier\nworkflow\ngohighlevel)",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            },
+            {
+              "id": "b04ecb99-5278-44c2-a984-82d599f1579f",
+              "leftValue": "={{ $json.description }}",
+              "rightValue": "(ai\nautomation\nn8n\nmake\\.com\nzapier\nworkflow\ngohighlevel)",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -1408,
+        -32
+      ],
+      "id": "faf7764c-e5d0-4b1f-84e3-4697b2701779",
+      "name": "Filter"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Notify the jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Every 30 Minutes": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "a1072340-8959-486b-92cb-5adec1184c0e",
+  "activeVersionId": null,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-05-28T06:10:35.824Z",
+      "createdAt": "2026-05-28T06:10:35.824Z",
+      "role": "workflow:owner",
+      "workflowId": "tEGsZk1BYyHYfaWq",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
