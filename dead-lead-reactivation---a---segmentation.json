@@ -1,0 +1,217 @@
+{
+  "updatedAt": "2026-08-27T10:38:21.277Z",
+  "createdAt": "2026-08-27T05:21:01.146Z",
+  "id": "lw3DUPJadoJJpTZt",
+  "name": "Dead Lead Reactivation - A - Segmentation",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "52960bfe-e268-418b-a1d0-03a396cfad04",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1824,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "options": {}
+      },
+      "id": "8b980ed3-132a-44a4-a0c7-03264b0c4810",
+      "name": "Read Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2064,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Suppression",
+          "mode": "list",
+          "cachedResultName": "Suppression"
+        },
+        "options": {}
+      },
+      "id": "6b7ffe24-0c84-42f8-bef7-7c57638234dd",
+      "name": "Read Suppression",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2064,
+        432
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "933513e4-c30b-4d6c-8825-da1bf09bab6a",
+      "name": "Merge Leads + Suppression",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2304,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Safety cap: prevents a single run from processing an unbounded number of rows.\nconst MAX_LEADS_PER_RUN = 5000;\n\n// Statuses already set by Workflow B or C. If a lead is in one of these,\n// Workflow A leaves Status alone on re-run — this is what makes it safe to\n// re-run A later (e.g. weekly, to segment newly-added leads) without undoing\n// progress on leads already in the middle of a conversation.\nconst LOCKED_STATUSES = new Set([\n  'contacted',\n  'Hot Lead - Needs Human Follow-Up',\n  'Not Interested - Dead',\n  'Do Not Contact',\n  'suppressed'\n]);\n\n// Split the merged 133 items back into two groups using a column that only\n// exists on one sheet — no artificial tagging needed, so nothing can silently\n// fail to apply the tag.\nconst suppressionItems = items\n  .filter(i => i.json['Suppression Reason'] !== undefined)\n  .map(i => i.json);\n\nlet leadItems = items\n  .filter(i => i.json['Suppression Reason'] === undefined)\n  .map(i => i.json);\n\nconst suppressedEmails = new Set(suppressionItems.map(s => (s.Email || '').toLowerCase().trim()));\nconst suppressedPhones = new Set(suppressionItems.map(s => (s['Phone Number'] || '').replace(/\\D/g, '')));\n\nif (leadItems.length > MAX_LEADS_PER_RUN) {\n  leadItems = leadItems.slice(0, MAX_LEADS_PER_RUN);\n}\n\nreturn leadItems.map(lead => {\n  const email = (lead.Email || '').toLowerCase().trim();\n  const phoneDigits = (lead['Phone Number'] || '').replace(/\\D/g, '');\n  const isSuppressed = suppressedEmails.has(email) || suppressedPhones.has(phoneDigits);\n\n  const daysSince = Number(lead['Days Since Last Activity']) || 0;\n  let segment = 'Recent (0-6mo)';\n  if (daysSince > 365) segment = 'Old (12-24mo)';\n  else if (daysSince > 180) segment = 'Mid (6-12mo)';\n\n  const dealValue = Number(lead['Estimated Deal Value']) || 0;\n  const priority = dealValue >= 15000 ? 'High' : dealValue >= 6000 ? 'Medium' : 'Low';\n\n  const smsOk = lead['SMS Opt-In'] === 'Yes';\n  const emailOk = lead['Email Opt-In'] === 'Yes';\n\n  const currentStatus = lead['Status'] || '';\n  let status;\n\n  if (LOCKED_STATUSES.has(currentStatus)) {\n    status = currentStatus; // already in progress elsewhere — don't touch it\n  } else if (isSuppressed) {\n    status = 'suppressed';\n  } else if (!smsOk && !emailOk) {\n    status = 'no_consent_hold';\n  } else {\n    status = 'ready_for_outreach';\n  }\n\n  return {\n    json: {\n      ...lead,\n      'Segment': segment,\n      'Priority': priority,\n      'Status': status\n    }\n  };\n});"
+      },
+      "id": "2a0e6ead-fa74-4065-b682-5dd8c512e853",
+      "name": "Segment & Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2544,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": [
+            "Record ID"
+          ],
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "a4ed0696-882a-4c07-9272-12d2dda3ac06",
+      "name": "Update Leads Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2784,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Leads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Suppression",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Leads": {
+      "main": [
+        [
+          {
+            "node": "Merge Leads + Suppression",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Suppression": {
+      "main": [
+        [
+          {
+            "node": "Merge Leads + Suppression",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Leads + Suppression": {
+      "main": [
+        [
+          {
+            "node": "Segment & Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Segment & Filter": {
+      "main": [
+        [
+          {
+            "node": "Update Leads Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "c5247c6e-58bd-425c-a13e-7e8a6a0d8b58",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-08-27T05:21:01.146Z",
+      "createdAt": "2026-08-27T05:21:01.146Z",
+      "role": "workflow:owner",
+      "workflowId": "lw3DUPJadoJJpTZt",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": [
+    {
+      "updatedAt": "2026-08-25T04:07:28.016Z",
+      "createdAt": "2026-08-25T04:07:28.016Z",
+      "id": "xeeTj944UymGSSBh",
+      "name": "Reactivation"
+    }
+  ]
+}
