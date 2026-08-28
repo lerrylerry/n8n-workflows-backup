@@ -1,0 +1,1584 @@
+{
+  "updatedAt": "2026-06-01T06:28:48.292Z",
+  "createdAt": "2026-04-19T04:23:49.573Z",
+  "id": "R9nEu9uJiE5yhsOC",
+  "name": "API-Powered Lead Enrichment & Scoring System",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "addOptions": {}
+      },
+      "type": "@zerobounce/n8n-nodes-zerobounce.zeroBounce",
+      "typeVersion": 1,
+      "position": [
+        512,
+        -16
+      ],
+      "id": "9a1051d3-4be5-41c1-9460-bd73f848f463",
+      "name": "Validate an email",
+      "credentials": {
+        "zeroBounceApi": {
+          "id": "9LdyOqXu49Vqocgk",
+          "name": "ZeroBounce account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c7632454-678d-47be-8a88-1fb5027eb77d",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -416,
+        0
+      ],
+      "id": "10341ec8-6166-4cfc-834d-05f8ba1a9a2f",
+      "name": "Form Submitted",
+      "webhookId": "c7632454-678d-47be-8a88-1fb5027eb77d"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "143G2DP4fvIScb4FYXDUjyBW2SwxxWHDCURL2mTJ2ALU",
+          "mode": "list",
+          "cachedResultName": "Enrichment Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/143G2DP4fvIScb4FYXDUjyBW2SwxxWHDCURL2mTJ2ALU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Rejected",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/143G2DP4fvIScb4FYXDUjyBW2SwxxWHDCURL2mTJ2ALU/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.lead.name }}",
+            "Email": "={{ $json.lead.email }}",
+            "Domain": "={{ $json.lead.domain }}",
+            "Company": "={{ $json.lead.company }}",
+            "Lead Source": "={{ $json.lead.lead_source }}",
+            "Process at": "={{ $json.lead.processed_at }}",
+            "Reason": "Junk/Spam"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Domain",
+              "displayName": "Domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead Source",
+              "displayName": "Lead Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Process at",
+              "displayName": "Process at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        240
+      ],
+      "id": "cf3c6de2-88dd-468d-bb1f-f2f2ecf67b95",
+      "name": "Add in Spam List",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.hunter.io/v2/combined/find?",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $json.address }}"
+            },
+            {
+              "name": "api_key",
+              "value": "f1dcaff71c82599997de24ba7d4457def3d3f7ed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1088,
+        -16
+      ],
+      "id": "e5030ae0-b96d-42f7-ba1a-f7acf8c45b90",
+      "name": "Person and Organization Enrichment using Hunter.io"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c9f70d1e-64ba-4726-ba23-72458010ff63",
+              "leftValue": "={{ $json.flags.shouldProcess }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        192,
+        0
+      ],
+      "id": "dfefc4d9-8f96-41e1-9c90-2f5655bf484c",
+      "name": "should process?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b430cb9d-cb3c-4ccd-9433-0e46a334c506",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "valid",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "4897b278-d335-4507-814b-5d573021d0cd",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "catch-all",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": "={{ false }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        880,
+        -16
+      ],
+      "id": "bb898c13-5610-4aa5-91af-142ddb8c5442",
+      "name": "is status valid or catch-all?"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "143G2DP4fvIScb4FYXDUjyBW2SwxxWHDCURL2mTJ2ALU",
+          "mode": "list",
+          "cachedResultName": "Enrichment Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/143G2DP4fvIScb4FYXDUjyBW2SwxxWHDCURL2mTJ2ALU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 258858125,
+          "mode": "list",
+          "cachedResultName": "Nurture",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/143G2DP4fvIScb4FYXDUjyBW2SwxxWHDCURL2mTJ2ALU/edit#gid=258858125"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.lead.name }}",
+            "Email": "={{ $json.lead.email }}",
+            "Company": "={{ $json.lead.company }}",
+            "Lead Source": "={{ $json.lead.lead_source }}",
+            "Score": "={{ $json.score }}",
+            "Pipeline Stage": "={{ $json.priority }}",
+            "Processed at": "={{ $json.lead.processed_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Source",
+              "displayName": "Lead Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pipeline Stage",
+              "displayName": "Pipeline Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Processed at",
+              "displayName": "Processed at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2000,
+        -32
+      ],
+      "id": "5c832881-8289-45a6-99ef-6232cc07d7a3",
+      "name": "Add in Nurture List",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3-flash-preview",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2208,
+        -192
+      ],
+      "id": "5e050845-c0ec-410f-9ea7-cc57c67d3230",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "={\n  \"type\": \"object\",\n  \"properties\": {\n    \"subject\": {\n      \"type\": \"string\",\n      \"description\": \"Short cold email subject line under 8 words\"\n    },\n    \"email\": {\n      \"type\": \"string\",\n      \"description\": \"Full email body only, no subject line inside\"\n    },\n    \"tone\": {\n      \"type\": \"string\",\n      \"enum\": [\"friendly\", \"formal\", \"casual\", \"confident\"]\n    },\n    \"cta_type\": {\n      \"type\": \"string\",\n      \"enum\": [\"low_pressure\", \"medium\", \"direct\"]\n    },\n    \"personalization_used\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"confidence_score\": {\n      \"type\": \"number\",\n      \"description\": \"0–100 how confident the model is in personalization quality\"\n    }\n  },\n  \"required\": [\n    \"subject\",\n    \"email\",\n    \"tone\",\n    \"cta_type\",\n    \"confidence_score\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2352,
+        -192
+      ],
+      "id": "a41e92be-bf4d-4f51-b96e-1147e87cf3c8",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "={\n  \"type\": \"object\",\n  \"properties\": {\n    \"subject\": {\n      \"type\": \"string\",\n      \"description\": \"Short cold email subject line under 8 words\"\n    },\n    \"email\": {\n      \"type\": \"string\",\n      \"description\": \"Full email body only, no subject line inside\"\n    },\n    \"tone\": {\n      \"type\": \"string\",\n      \"enum\": [\"friendly\", \"formal\", \"casual\", \"confident\"]\n    },\n    \"cta_type\": {\n      \"type\": \"string\",\n      \"enum\": [\"low_pressure\", \"medium\", \"direct\"]\n    },\n    \"personalization_used\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"confidence_score\": {\n      \"type\": \"number\",\n      \"description\": \"0–100 how confident the model is in personalization quality\"\n    }\n  },\n  \"required\": [\n    \"subject\",\n    \"email\",\n    \"tone\",\n    \"cta_type\",\n    \"confidence_score\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2352,
+        128
+      ],
+      "id": "edd0e7e4-9e19-479e-a128-7320e7df526b",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3-flash-preview",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2208,
+        128
+      ],
+      "id": "03392c20-755c-45a5-b3a7-f90351677cbf",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "DfL2oENEvtoz48DF",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0AT7ACQHAS",
+          "mode": "list",
+          "cachedResultName": "lead-alerts"
+        },
+        "text": "=High Lead Alert\nName: {{ $('Add in High Priority List').item.json.Name }}\nEmail: {{ $('Add in High Priority List').item.json.Email }}\nCompany: {{ $('Add in High Priority List').item.json.Company }}\nLead Score: {{ $('Add in High Priority List').item.json.Score }}\nPriority Level: {{ $('Add in High Priority List').item.json[\"Pipeline Stage\"] }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        2592,
+        -336
+      ],
+      "id": "46cb6665-95ca-48b3-89f7-63cbaca2356e",
+      "name": "Send notification to sales team",
+      "webhookId": "ce3797ec-33a3-4e47-b749-0edcfd6c84cc",
+      "credentials": {
+        "slackApi": {
+          "id": "jcz6WXPrVEg76l77",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔹 SAFE INPUT\nconst input = $json || {};\n\n// 🔹 SAFE BODY\nconst body = input.body && typeof input.body === \"object\"\n  ? input.body\n  : {};\n\n// 🔹 SAFE RAW REQUEST PARSE\nlet parsed = {};\n\ntry {\n  if (typeof body.rawRequest === \"string\") {\n    parsed = JSON.parse(body.rawRequest);\n  } else if (typeof body.rawRequest === \"object\") {\n    parsed = body.rawRequest;\n  }\n} catch (e) {\n  parsed = {};\n}\n\n// 🔹 Extract fields safely\nconst firstName = parsed?.q4_name?.first || \"\";\nconst lastName = parsed?.q4_name?.last || \"\";\n\nconst rawName = `${firstName} ${lastName}`.trim();\n\nconst rawEmail = (parsed?.q5_email || \"\").toString().toLowerCase().trim();\n\nconst company = parsed?.q17_companyName || \"Unknown\";\nconst leadSource = parsed?.q39_leadSource || \"Direct\";\n\n// 🔹 Clean name\nconst cleanName = rawName\n  ? rawName\n      .split(\" \")\n      .filter(Boolean)\n      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())\n      .join(\" \")\n  : \"Unknown\";\n\n// 🔹 Email domain\nconst emailDomain = rawEmail.includes(\"@\")\n  ? rawEmail.split(\"@\")[1]\n  : \"\";\n\n// 🔹 PH Timestamp\nconst phTimestamp = new Date().toLocaleString(\"en-US\", {\n  timeZone: \"Asia/Manila\",\n  year: \"numeric\",\n  month: \"long\",\n  day: \"numeric\",\n  hour: \"2-digit\",\n  minute: \"2-digit\",\n  hour12: false\n}) + \" PHT\";\n\n// 🔥 FINAL SAFE OUTPUT\nreturn {\n  json: {\n    name: cleanName,\n    email: rawEmail,\n    domain: emailDomain,\n    company,\n    lead_source: leadSource,\n    submitted_at: new Date().toISOString(),\n    processed_at: phTimestamp\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        0
+      ],
+      "id": "629c2186-7ff0-4721-996c-5932d36c771e",
+      "name": "Parse Jotform"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔹 SAFE INPUT (prevents crash)\nconst data = $json && typeof $json === \"object\" ? $json : {};\n\n// 🔹 SAFE EXTRACTION (from previous Jotform node)\nconst lead = data.lead || data;\n\n// ==============================\n// 🔍 SAFETY SETUP\n// ==============================\nconst email = (lead.email || \"\").toString().toLowerCase().trim();\nconst name = (lead.name || \"\").toString().trim();\nconst domain = (lead.domain || \"\").toString().toLowerCase().trim();\nconst company = lead.company || \"Unknown\";\nconst lead_source = lead.lead_source || \"Direct\";\n\n// ==============================\n// 🔹 RULES\n// ==============================\nconst junkWords = [\"test\", \"fake\", \"asdf\", \"none\", \"spam\", \"qwerty\"];\n\nconst personalDomains = [\n  \"gmail.com\",\n  \"yahoo.com\",\n  \"outlook.com\",\n  \"hotmail.com\",\n  \"icloud.com\",\n  \"msn.com\",\n];\n\n// ==============================\n// 🔹 VALIDATION CHECKS\n// ==============================\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nconst isValidFormat = emailRegex.test(email);\n\nconst isPersonalEmail = personalDomains.includes(domain);\n\nconst isJunkLead = junkWords.some((word) => {\n  return (\n    email.includes(word) ||\n    (name && name.toLowerCase().includes(word))\n  );\n});\n\nconst isRealName =\n  typeof name === \"string\" &&\n  name.length > 2 &&\n  !/\\d/.test(name);\n\n// ==============================\n// 🔹 FINAL DECISION\n// ==============================\nconst shouldProcess =\n  isValidFormat &&\n  !isJunkLead &&\n  isRealName;\n\n// ==============================\n// 🔥 OUTPUT (STRICT n8n FORMAT)\n// ==============================\nreturn {\n  json: {\n    lead: {\n      name,\n      email,\n      domain,\n      company,\n      lead_source,\n      submitted_at: lead.submitted_at || null,\n      processed_at: lead.processed_at || null,\n    },\n\n    flags: {\n      isEmailValid: isValidFormat,\n      isPersonalEmail,\n      isJunkLead,\n      isRealName,\n      shouldProcess,\n    },\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "c3fcb3b7-c989-4721-b01a-1db25fb40d74",
+      "name": "Normalize + Validate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json;\n\n// SAFETY CHECK (prevents crash)\nif (!input || typeof input !== \"object\") {\n  return [\n    {\n      json: {\n        error: \"Invalid input received\",\n        raw: input,\n      },\n    },\n  ];\n}\n\n// SAFE EXTRACTION\nconst lead = input.lead || {};\nconst validation = {\n  status: input.status || \"unknown\",\n  free_email: input.free_email || false,\n  domain_age_days: input.domain_age_days || 0,\n  mx_found: input.mx_found || false,\n};\n\nconst enrichment = input.data || {};\nconst person = enrichment.person || {};\nconst company = enrichment.company || {};\n\n// SCORE\nlet score = 0;\n\n// EMAIL\nif (validation.status === \"valid\") score += 25;\nelse if (validation.status === \"catch-all\") score += 15;\n\nif (validation.mx_found === \"true\") score += 3;\n\nconst domainAge = Number(validation.domain_age_days);\nif (domainAge > 3650) score += 5;\nelse if (domainAge > 1000) score += 3;\n\nif (validation.free_email) score -= 8;\n\n// COMPANY\nconst employees = company?.metrics?.employees;\n\nif (employees === \"11-50\") score += 15;\nelse if (employees === \"51-200\") score += 22;\nelse if (employees === \"201-1000\") score += 26;\nelse if (employees === \"1000+\") score += 30;\nelse score += 8;\n\n// PERSON\nconst seniority = person?.employment?.seniority;\n\nif (seniority === \"executive\") score += 25;\nelse if (seniority === \"manager\") score += 18;\nelse score += 6;\n\n// SOURCE\nconst source = (lead.lead_source || \"\").toLowerCase();\n\nif (source.includes(\"referral\")) score += 20;\nelse if (source.includes(\"website\")) score += 17;\nelse if (source.includes(\"organic\")) score += 15;\nelse if (source.includes(\"paid\")) score += 10;\nelse if (source.includes(\"cold\")) score += 5;\n\n// FINAL\nconst finalScore = Math.max(0, Math.min(100, Math.round(score)));\n\nlet priority = \"low\";\nif (finalScore >= 70) priority = \"high\";\nelse if (finalScore >= 40) priority = \"medium\";\n\n// 🔥 CRITICAL: ALWAYS RETURN THIS FORMAT\nreturn [\n  {\n    json: {\n      lead,\n      validation,\n      enrichment,\n      score: finalScore,\n      priority,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        -32
+      ],
+      "id": "b60e41e0-0897-41f9-9271-8df7f8beeb1e",
+      "name": "Scoring Leads"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "143G2DP4fvIScb4FYXDUjyBW2SwxxWHDCURL2mTJ2ALU",
+          "mode": "list",
+          "cachedResultName": "Enrichment Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/143G2DP4fvIScb4FYXDUjyBW2SwxxWHDCURL2mTJ2ALU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 181044545,
+          "mode": "list",
+          "cachedResultName": "High Priority",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/143G2DP4fvIScb4FYXDUjyBW2SwxxWHDCURL2mTJ2ALU/edit#gid=181044545"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $json.lead.email }}",
+            "Name": "={{ $json.lead.name }}",
+            "Company": "={{ $json.lead.company }}",
+            "Lead Source": "={{ $json.lead.lead_source }}",
+            "Score": "={{ $json.score }}",
+            "Pipeline Stage": "={{ $json.priority }}",
+            "Processed at": "={{ $json.lead.processed_at }}",
+            "Tech Stack": "={{ $json.enrichment.company.techCategories }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Source",
+              "displayName": "Lead Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tech Stack",
+              "displayName": "Tech Stack",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pipeline Stage",
+              "displayName": "Pipeline Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Processed at",
+              "displayName": "Processed at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2000,
+        -336
+      ],
+      "id": "b21c74a6-4058-4d00-a43d-038e9300374c",
+      "name": "Add in High Priority List",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "iloveyou123xc@gmail.com",
+        "subject": "={{ $json.output.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.output.email }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2592,
+        -32
+      ],
+      "id": "17e682fd-ab90-4cfb-97fc-eac73616d3d3",
+      "name": "Send Email to Nurture Lead",
+      "webhookId": "8270f0bb-52a0-499b-8929-bb54b6f1614f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "iloveyou123xc@gmail.com",
+        "subject": "={{ $('Content Generation').item.json.output.subject }}",
+        "emailType": "text",
+        "message": "={{ $('Content Generation').item.json.output.email }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2800,
+        -336
+      ],
+      "id": "982562b2-bae0-497c-a579-71e919d50466",
+      "name": "Send Message to High Lead",
+      "webhookId": "0a420c15-f1ab-4af5-b470-b168f1fd0edd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "alfRaVzVQ7RLfgNz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a short personalized cold email for a high-value B2B lead.  Lead details: Name: {{ $json.Name }} Company: {{ $json.Company }} Lead Source: {{ $json[\"Lead Source\"] }} Company Tech: {{ $json[\"Tech Stack\"] }}  Rules: - Keep email under 90 words - Subject line MUST be under 8 words - Friendly, confident, natural tone - No spammy or salesy language - Mention company naturally (not robotic) - If tech categories exist, subtly reference 1 - Focus on value, not features - End with low-pressure CTA (quick chat / 10 mins)  Structure: 1. Subject line: curiosity or relevance-based (not clickbait) 2. Greeting with first name 3. Short relevant observation 4. Value statement 5. Soft CTA IMPORTANT: Return ONLY valid JSON matching the schema. No markdown, no explanation.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a professional sales assistant who writes natural, human-like emails."
+            },
+            {
+              "type": "AIMessagePromptTemplate",
+              "message": "Hey John,  I came across your company and thought I'd reach out..."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2208,
+        -336
+      ],
+      "id": "b1362077-8aeb-400d-9787-1a58556cf04a",
+      "name": "Content Generation"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a short, friendly nurture/follow-up email for a potential B2B lead.  Lead details: Name: {{ $json.Name }} Company: {{ $json.Company }} Lead Source: {{ $json[\"Lead Source\"] }}  Rules: - Keep under 100 words - Very natural, warm, and low-pressure tone - No selling, no pitching, no urgency - Mention their company casually if natural - Focus on being helpful or checking in lightly - Do NOT include a strong CTA (no “book a call”) - No hype, no aggressive language  Structure: 1. Friendly greeting 2. Light acknowledgment or context (optional reference to their company/industry) 3. Offer value or helpful intent (soft insight or openness to help) 4. Open-ended closing (no ask, just openness)  IMPORTANT: Return ONLY valid JSON matching the schema. No markdown, no explanation.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a professional sales assistant who writes natural, human-like emails."
+            },
+            {
+              "type": "AIMessagePromptTemplate",
+              "message": "Hey John,  I came across your company and thought I'd reach out..."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2208,
+        -32
+      ],
+      "id": "f256d275-761e-41fc-847b-2cf158470168",
+      "name": "Content Generation1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "143G2DP4fvIScb4FYXDUjyBW2SwxxWHDCURL2mTJ2ALU",
+          "mode": "list",
+          "cachedResultName": "Enrichment Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/143G2DP4fvIScb4FYXDUjyBW2SwxxWHDCURL2mTJ2ALU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1445109909,
+          "mode": "list",
+          "cachedResultName": "Low Priority",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/143G2DP4fvIScb4FYXDUjyBW2SwxxWHDCURL2mTJ2ALU/edit#gid=1445109909"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.lead.name }}",
+            "Email": "={{ $json.lead.email }}",
+            "Company": "={{ $json.lead.company }}",
+            "Lead Source": "={{ $json.lead.lead_source }}",
+            "Processed at": "={{ $json.lead.processed_at }}",
+            "Score": "={{ $json.score }}",
+            "Pipeline Stage": "={{ $json.priority }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Source",
+              "displayName": "Lead Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pipeline Stage",
+              "displayName": "Pipeline Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Processed at",
+              "displayName": "Processed at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2000,
+        304
+      ],
+      "id": "5aee3a8d-e18a-46ad-80b5-70a853d05228",
+      "name": "Add in Low Priority List",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "zWeRJ4aWcg6nma7o",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "jT2XujDbg5WvyOdj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/jT2XujDbg5WvyOdj",
+          "cachedResultName": "'(Monday.com) Nurture Workflow'"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2800,
+        -32
+      ],
+      "id": "3b3f3402-cb93-4753-8252-0531a4055ea6",
+      "name": "Call ''(Monday.com) Nurture Workflow''"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.priority }}",
+                    "rightValue": "high",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6965cb2d-8e10-45bc-b5fe-cbd125d1511e"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "53281661-f60b-4372-9043-559bed9c1106",
+                    "leftValue": "={{ $json.priority }}",
+                    "rightValue": "medium",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "98c306ff-f7a9-4450-a55c-24bd1460cfa3",
+                    "leftValue": "={{ $json.priority }}",
+                    "rightValue": "low",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1712,
+        -48
+      ],
+      "id": "755c2b7c-cf51-473e-a658-d1babe8ab992",
+      "name": "Route the Leads"
+    }
+  ],
+  "connections": {
+    "Form Submitted": {
+      "main": [
+        [
+          {
+            "node": "Parse Jotform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate an email": {
+      "main": [
+        [
+          {
+            "node": "is status valid or catch-all?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Person and Organization Enrichment using Hunter.io": {
+      "main": [
+        [
+          {
+            "node": "Scoring Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "should process?": {
+      "main": [
+        [
+          {
+            "node": "Validate an email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add in Spam List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "is status valid or catch-all?": {
+      "main": [
+        [
+          {
+            "node": "Person and Organization Enrichment using Hunter.io",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add in Spam List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Content Generation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Content Generation",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Content Generation1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Content Generation1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send notification to sales team": {
+      "main": [
+        [
+          {
+            "node": "Send Message to High Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Jotform": {
+      "main": [
+        [
+          {
+            "node": "Normalize + Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize + Validate": {
+      "main": [
+        [
+          {
+            "node": "should process?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scoring Leads": {
+      "main": [
+        [
+          {
+            "node": "Route the Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add in Nurture List": {
+      "main": [
+        [
+          {
+            "node": "Content Generation1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add in High Priority List": {
+      "main": [
+        [
+          {
+            "node": "Content Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content Generation": {
+      "main": [
+        [
+          {
+            "node": "Send notification to sales team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content Generation1": {
+      "main": [
+        [
+          {
+            "node": "Send Email to Nurture Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email to Nurture Lead": {
+      "main": [
+        [
+          {
+            "node": "Call ''(Monday.com) Nurture Workflow''",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route the Leads": {
+      "main": [
+        [
+          {
+            "node": "Add in High Priority List",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add in Nurture List",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add in Low Priority List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Manila",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "Form Submitted": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-lerrylerry.onrender.com",
+            "content-length": "3579",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1",
+            "cf-connecting-ip": "34.45.252.250",
+            "cf-ipcountry": "US",
+            "cf-ray": "9ec22f0cb9a21088-ORD",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "content-type": "multipart/form-data; boundary=------------------------FEaCk03VwgNO9lXtlNE4Xx",
+            "newrelic": "eyJ2IjpbMCwxXSwiZCI6eyJ0eSI6IkFwcCIsImFjIjoiNjkxNjIwIiwiYXAiOiIxMzE0NDY2Njk5IiwiaWQiOiIzNzczNGQ2OTY3NjRiMTgyIiwidHIiOiJlNmI4ZWFjOGJjMWM5YjNhIiwidHgiOiJlNmI4ZWFjOGJjMWM5YjNhIiwicHIiOjEuMDgxMTUsInNhIjp0cnVlLCJ0aSI6MTc3NjE2NDE4NTAzMX19",
+            "render-proxy-ttl": "4",
+            "rndr-id": "8a1b1ed4-098c-482e",
+            "traceparent": "00-0000000000000000e6b8eac8bc1c9b3a-37734d696764b182-01",
+            "tracestate": "691620@nr=0-0-691620-1314466699-37734d696764b182-e6b8eac8bc1c9b3a-1-1.081145-1776164185031",
+            "true-client-ip": "34.45.252.250",
+            "x-forwarded-for": "34.45.252.250, 172.69.58.89, 10.29.166.31",
+            "x-forwarded-proto": "https",
+            "x-request-start": "1776164185270559"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "action": "",
+            "webhookURL": "https://n8n-lerrylerry.onrender.com/webhook-test/d7662c55-4aa9-4b15-973c-481e9bdf1854",
+            "username": "laungayanjohnlerry",
+            "formID": "260188350838059",
+            "type": "WEB",
+            "customParams": "",
+            "product": "",
+            "formTitle": "Contact Form",
+            "customTitle": "",
+            "submissionID": "6519733846617260088",
+            "event": "",
+            "documentID": "",
+            "teamID": "",
+            "subject": "",
+            "isSilent": "",
+            "customBody": "",
+            "rawRequest": "{\"slug\":\"submit\\/260188350838059\",\"jsExecutionTracker\":\"build-date-1776152836891=>init-started:1776164150940=>validator-called:1776164150957=>validator-mounted-false:1776164150958=>init-complete:1776164150964=>interval-complete:1776164172217=>onsubmit-fired:1776164182924=>observerSubmitHandler_received-submit-event:1776164182925=>submit-validation-passed:1776164182933=>observerSubmitHandler_validation-passed-submitting-form:1776164182967\",\"submitSource\":\"form\",\"submitDate\":\"1776164182967\",\"buildDate\":\"1776152836891\",\"uploadServerUrl\":\"https:\\/\\/upload.jotform.com\\/upload\",\"eventObserver\":\"1\",\"q4_name\":{\"first\":\"Matthew\",\"last\":\"Tharp\"},\"q5_email\":\"matt@hunter.io\",\"q17_companyName\":\"Hunter\",\"q39_leadSource\":\"Cold Outreach\",\"event_id\":\"1776164150940_260188350838059_qeWjM5f\",\"timeToSubmit\":\"20\",\"validatedNewRequiredFieldIDs\":\"{\\\"new\\\":1}\",\"path\":\"\\/submit\\/260188350838059\"}",
+            "fromTable": "",
+            "appID": "",
+            "pretty": "Name:Matthew Tharp, Email:matt@hunter.io, Company Name:Hunter, Lead Source:Cold Outreach",
+            "unread": "",
+            "parent": "",
+            "ip": "110.54.197.166"
+          },
+          "webhookUrl": "https://n8n-lerrylerry.onrender.com/webhook-test/d7662c55-4aa9-4b15-973c-481e9bdf1854",
+          "executionMode": "test"
+        }
+      }
+    ],
+    "Validate an email": [
+      {
+        "json": {
+          "address": "matt@hunter.io",
+          "status": "valid",
+          "sub_status": "",
+          "free_email": false,
+          "did_you_mean": null,
+          "account": "matt",
+          "domain": "hunter.io",
+          "domain_age_days": "4984",
+          "smtp_provider": "g-suite",
+          "mx_found": "true",
+          "mx_record": "aspmx.l.google.com",
+          "firstname": null,
+          "lastname": null,
+          "gender": null,
+          "country": null,
+          "region": null,
+          "city": null,
+          "zipcode": null,
+          "processed_at": "2026-04-17 01:52:47.040"
+        },
+        "pairedItem": 0
+      }
+    ],
+    "Person and Organization Enrichment using Hunter.io": [
+      {
+        "json": {
+          "data": {
+            "person": {
+              "id": "b3ae14fb-6725-56d1-ac68-a76f8ce04dec",
+              "name": {
+                "fullName": "Matthew Tharp",
+                "givenName": "Matthew",
+                "familyName": "Tharp"
+              },
+              "email": "matt@hunter.io",
+              "location": "Greater Boston",
+              "timeZone": "America/New_York",
+              "utcOffset": -5,
+              "geo": {
+                "city": "Framingham",
+                "state": "Massachusetts",
+                "stateCode": "MA",
+                "country": "United States",
+                "countryCode": "US",
+                "lat": 42.27926,
+                "lng": -71.41617
+              },
+              "bio": null,
+              "site": null,
+              "avatar": null,
+              "employment": {
+                "domain": "hunter.io",
+                "name": "Hunter",
+                "title": "Chief Executive Officer",
+                "role": "executive",
+                "subRole": null,
+                "seniority": "executive"
+              },
+              "facebook": {
+                "handle": null
+              },
+              "github": {
+                "handle": null,
+                "id": null,
+                "avatar": null,
+                "company": null,
+                "blog": null,
+                "followers": null,
+                "following": null
+              },
+              "twitter": {
+                "handle": "matttharp",
+                "id": null,
+                "bio": null,
+                "followers": null,
+                "following": null,
+                "statuses": null,
+                "favorites": null,
+                "location": null,
+                "site": null,
+                "avatar": null
+              },
+              "linkedin": {
+                "handle": "matttharp"
+              },
+              "googleplus": {
+                "handle": null
+              },
+              "gravatar": {
+                "handle": null,
+                "urls": [],
+                "avatar": null,
+                "avatars": []
+              },
+              "fuzzy": false,
+              "emailProvider": "google.com",
+              "indexedAt": "2026-04-07",
+              "phone": null,
+              "activeAt": "2026-04-09",
+              "inactiveAt": null
+            },
+            "company": {
+              "id": "95ca56a8-a019-5c41-881e-293d9ca4741a",
+              "name": "Hunter",
+              "legalName": "Hunter",
+              "domain": "hunter.io",
+              "domainAliases": [],
+              "site": {
+                "phoneNumbers": [
+                  "+1 415 712 0049"
+                ],
+                "emailAddresses": [
+                  "support@hunter.io",
+                  "press@hunter.io",
+                  "contact@hunter.io",
+                  "engineering@hunter.io",
+                  "affiliates@hunter.io",
+                  "security@hunter.io"
+                ]
+              },
+              "category": {
+                "sector": "Information Technology",
+                "industryGroup": "Software & Services",
+                "industry": "Internet Software & Services",
+                "subIndustry": "Internet",
+                "gicsCode": "45103010",
+                "sicCode": "36",
+                "sic4Codes": [
+                  "73"
+                ],
+                "naicsCode": "51",
+                "naics6Codes": [
+                  "519130"
+                ],
+                "naics6Codes2022": [
+                  "519290"
+                ]
+              },
+              "tags": [
+                "email marketing",
+                "lead generation",
+                "data enrichment",
+                "sales intelligence",
+                "business tools"
+              ],
+              "description": "Hunter is an email marketing company that specializes in lead generation and data enrichment.",
+              "foundedYear": 2015,
+              "location": "Wilmington, Delaware, United States",
+              "timeZone": "America/New_York",
+              "utcOffset": -5,
+              "geo": {
+                "streetNumber": null,
+                "streetName": null,
+                "subPremise": null,
+                "streetAddress": null,
+                "city": "Wilmington",
+                "postalCode": null,
+                "state": "Delaware",
+                "stateCode": "DE",
+                "country": "United States",
+                "countryCode": "US",
+                "lat": 39.74595,
+                "lng": -75.54659
+              },
+              "logo": "https://logos.hunter.io/hunter.io",
+              "facebook": {
+                "handle": null,
+                "likes": null
+              },
+              "linkedin": {
+                "handle": "company/hunterio"
+              },
+              "twitter": {
+                "handle": null,
+                "id": null,
+                "bio": null,
+                "followers": null,
+                "following": null,
+                "location": null,
+                "site": null,
+                "avatar": null
+              },
+              "crunchbase": {
+                "handle": null
+              },
+              "youtube": {
+                "handle": null
+              },
+              "instagram": {
+                "handle": null
+              },
+              "emailProvider": "google.com",
+              "type": "private",
+              "companyType": "privately held",
+              "ticker": null,
+              "identifiers": {
+                "usEIN": null
+              },
+              "phone": "+1 415 712 0049",
+              "metrics": {
+                "alexaUsRank": null,
+                "alexaGlobalRank": null,
+                "trafficRank": "very_high",
+                "employees": "11-50",
+                "marketCap": null,
+                "raised": null,
+                "annualRevenue": null,
+                "estimatedAnnualRevenue": null,
+                "fiscalYearEnd": null
+              },
+              "indexedAt": "2026-01-14",
+              "tech": [
+                "cloudflare",
+                "cloudflare-browser-insights",
+                "hsts",
+                "http-3",
+                "ruby",
+                "ruby-on-rails",
+                "stimulus"
+              ],
+              "techCategories": [
+                "analytics",
+                "dns",
+                "programming_framework",
+                "programming_language",
+                "security",
+                "web_servers"
+              ],
+              "fundingRounds": [],
+              "parent": {
+                "domain": null
+              },
+              "ultimateParent": {
+                "domain": null
+              }
+            }
+          },
+          "meta": {
+            "email": "matt@hunter.io"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Send Email to Nurture Lead": [
+      {
+        "json": {
+          "id": "19d9b4ad1db48a0b",
+          "threadId": "19d9b4ad1db48a0b",
+          "labelIds": [
+            "SENT"
+          ]
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Content Generation1": [
+      {
+        "json": {
+          "output": {
+            "subject": "Thinking of Hunter / Quick hello",
+            "email": "Hi Matthew,\n\nI was just thinking about the team at Hunter and wanted to reach out.\n\nI’ve been keeping an eye on your industry lately and it’s been interesting to see how things are shifting. If you ever want a fresh perspective or just need someone to bounce an idea off of, I’m always happy to help out where I can—no pressure at all.\n\nHope your week is off to a great start.",
+            "tone": "friendly",
+            "cta_type": "low_pressure",
+            "personalization_used": [
+              "First name",
+              "Company name"
+            ],
+            "confidence_score": 98
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "versionId": "c805470e-69e2-42d2-a90f-bb85997adb8f",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-04-19T04:23:49.573Z",
+      "createdAt": "2026-04-19T04:23:49.573Z",
+      "role": "workflow:owner",
+      "workflowId": "R9nEu9uJiE5yhsOC",
+      "projectId": "DtNYZtfQoHul5043"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
