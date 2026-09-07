@@ -1,0 +1,888 @@
+{
+  "name": "Telegram Receipt Photo Processing",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "d118c9ae-c6f2-4fb6-bd3a-9aca29f98c8b",
+      "name": "Telegram Receipt Received",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -912,
+        176
+      ],
+      "webhookId": "027a86ff-3492-4b60-865a-4bf40122bca1",
+      "credentials": {
+        "telegramApi": {
+          "id": "3pBMwHHAdVU5jXQ3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fea9cf46-0f03-49cf-8715-3f96af9e79bf",
+              "leftValue": "={{ $json.message.photo }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "f5a3ea29-8dac-417c-9dff-8d4f0b8a4194",
+      "name": "Message Has Photo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -688,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "I can only process receipt photos right now — please resend it as a photo (not a file/document).",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "4b1dc4d0-93c3-49d4-b075-f685cd4d13b9",
+      "name": "Ask For A Photo",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -464,
+        272
+      ],
+      "webhookId": "432e922f-47e8-480d-9c67-873006720e1a",
+      "credentials": {
+        "telegramApi": {
+          "id": "3pBMwHHAdVU5jXQ3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "aee3797c-f44e-41aa-9d83-4ae1530c5ae5",
+              "name": "fileId",
+              "type": "string",
+              "value": "={{ $json.message.photo.last().file_id }}"
+            },
+            {
+              "id": "37816fe3-82b9-4b0c-9116-58695fe34b31",
+              "name": "chatId",
+              "type": "number",
+              "value": "={{ $json.message.chat.id }}"
+            },
+            {
+              "id": "072ef730-f057-4b1f-ae79-63af14aab818",
+              "name": "messageId",
+              "type": "number",
+              "value": "={{ $json.message.message_id }}"
+            },
+            {
+              "id": "42e6bf8a-eb05-4f1d-89b0-67b4637d63fc",
+              "name": "submissionTimestamp",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "id": "5b979b81-ea39-4564-9e8d-fbd720528920",
+              "name": "submissionDate",
+              "type": "string",
+              "value": "={{ $now.toISODate() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "be2670df-3277-491e-b710-f73d6f8f6799",
+      "name": "Photo Picker",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -464,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.fileId }}",
+        "additionalFields": {}
+      },
+      "id": "cc0fb9e9-4ac7-4e5e-ab1d-039d3cfed0ae",
+      "name": "Download Photo",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        80
+      ],
+      "webhookId": "e9f3839a-3bee-4c41-a837-b004cd874298",
+      "credentials": {
+        "telegramApi": {
+          "id": "3pBMwHHAdVU5jXQ3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Safe access to the Gemini stringified text payload\nconst rawText = $input.item.json.content?.parts?.[0]?.text || \"{}\";\n\n// Parse string into an object\nlet receiptData = {};\ntry {\n  receiptData = JSON.parse(rawText);\n} catch (e) {\n  // Gracefully handle unparseable text chunks\n}\n\n// Gather upstream data dynamically via cross-node lookup\nconst photoPicker = $('Photo Picker').item.json;\n\n// Validate reading accuracy\nconst hasMerchant = receiptData.merchant_name && receiptData.merchant_name.toLowerCase() !== 'unknown';\nconst hasAmount = receiptData.total_amount && parseFloat(receiptData.total_amount) > 0;\nconst isValid = !!(hasMerchant && hasAmount);\n\n// Output the schema matching target parameters\nreturn {\n  json: {\n    chatId: photoPicker.chatId,\n    messageId: photoPicker.messageId,\n    submissionTimestamp: photoPicker.submissionTimestamp,\n    submissionDate: photoPicker.submissionDate,\n    merchant: receiptData.merchant_name || \"Unknown Merchant\",\n    amount: parseFloat(receiptData.total_amount) || 0,\n    currency: \"USD\",\n    date: receiptData.date || photoPicker.submissionDate,\n    isValid: isValid\n  }\n};"
+      },
+      "id": "da0f535a-4db7-4256-a7ef-1f1f525ed54c",
+      "name": "Parse JSON Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d7a3f846-05c4-432e-928f-9be7a0c97e0c",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "68f1500a-12e0-4c62-9714-b685f1ec2956",
+      "name": "Extraction Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        432,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "={{ $json.submissionDate }}",
+        "returnAll": true,
+        "filter": {
+          "driveId": {
+            "mode": "list",
+            "value": "My Drive"
+          },
+          "folderId": {
+            "__rl": true,
+            "value": "12fFNgpDC_60btxo1viy9mvx37H5RJ3gX",
+            "mode": "list",
+            "cachedResultName": "Telegram Logs",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/12fFNgpDC_60btxo1viy9mvx37H5RJ3gX"
+          },
+          "whatToSearch": "folders"
+        },
+        "options": {}
+      },
+      "id": "6db95b2e-1097-418a-ba04-dbd52bdf7440",
+      "name": "Find Submission Date Folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        656,
+        -64
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "451xixH2NkLrwopB",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2d9447f6-a811-4e38-9a46-3f10a40004c3",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5d7e9554-74f2-49af-9c81-fd8ce0276acc",
+      "name": "Submission Date Folder Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $('Parse JSON Data').item.json.submissionDate }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "12fFNgpDC_60btxo1viy9mvx37H5RJ3gX",
+          "mode": "list",
+          "cachedResultName": "Telegram Logs",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/12fFNgpDC_60btxo1viy9mvx37H5RJ3gX"
+        },
+        "options": {}
+      },
+      "id": "e2660a28-4ceb-4dfd-b90a-e2b8f6254461",
+      "name": "Create Submission Date Folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1104,
+        16
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "451xixH2NkLrwopB",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "={{ $('Download Photo').item.binary.data }}",
+        "name": "={{ 'receipt_' + $('Parse JSON Data').item.json.chatId + '_' + $('Parse JSON Data').item.json.messageId + '.jpg' }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create Submission Date Folder').isExecuted ? $('Create Submission Date Folder').item.json.id : $('Find Submission Date Folder').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "a6e0a2f3-591a-43d4-bf80-f78b209df156",
+      "name": "Upload Receipt Photo",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1328,
+        -64
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "451xixH2NkLrwopB",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1KMG-uQOSV_oriiYApr_yVSw-mSjoMFfg_-Ckl5MM6Ds",
+          "mode": "list",
+          "cachedResultName": "Telegram Receipt Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1KMG-uQOSV_oriiYApr_yVSw-mSjoMFfg_-Ckl5MM6Ds/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Details",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fIKjFcKc_PAjITivK1s4zDSait78nbOi6fMzt4YQRZI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Message ID": "={{ $('Parse JSON Data').item.json.messageId }}",
+            "Submission Date": "={{ $('Parse JSON Data').item.json.submissionDate }}",
+            "Merchant": "={{ $('Parse JSON Data').item.json.merchant }}",
+            "Amount": "={{ $('Parse JSON Data').item.json.amount }}",
+            "Currency": "={{ $('Parse JSON Data').item.json.currency }}",
+            "Drive Link": "={{ $json.webViewLink }}",
+            "Receipt Date": "={{ $('Parse JSON Data').item.json.date }}"
+          },
+          "matchingColumns": [
+            "Message ID"
+          ],
+          "schema": [
+            {
+              "id": "Message ID",
+              "displayName": "Message ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Submission Date",
+              "displayName": "Submission Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Merchant",
+              "displayName": "Merchant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Currency",
+              "displayName": "Currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Receipt Date",
+              "displayName": "Receipt Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Drive Link",
+              "displayName": "Drive Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "6ccbc324-fd9e-434b-a2bb-6d0b675e8026",
+      "name": "Log Receipt To Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1552,
+        -64
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2tkPplm0MppzlHIb",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse JSON Data').item.json.chatId }}",
+        "text": "={{ '✅ Logged: ' + $('Parse JSON Data').item.json.merchant + ' — ' + $('Parse JSON Data').item.json.amount + ' ' + $('Parse JSON Data').item.json.currency + ' on ' + $('Parse JSON Data').item.json.date + '.' }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "9a294a19-17fd-4a08-ba2c-82d2da7e0374",
+      "name": "Send Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1776,
+        -64
+      ],
+      "webhookId": "f115d65d-ab89-4f83-80e3-f9250f8482e3",
+      "credentials": {
+        "telegramApi": {
+          "id": "3pBMwHHAdVU5jXQ3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "={{ $json.submissionDate }}",
+        "returnAll": true,
+        "filter": {
+          "driveId": {
+            "mode": "list",
+            "value": "My Drive"
+          },
+          "folderId": {
+            "__rl": true,
+            "value": "13DWe7NA-esmFLvA-VOHkNq81UPSZySH6",
+            "mode": "list",
+            "cachedResultName": "Needs Review Log",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/13DWe7NA-esmFLvA-VOHkNq81UPSZySH6"
+          },
+          "whatToSearch": "folders"
+        },
+        "options": {}
+      },
+      "id": "48058538-bed1-4515-96f4-2398dbe3f613",
+      "name": "Find NeedsReview Date Folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        656,
+        224
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "451xixH2NkLrwopB",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f33c7aaa-d734-4598-ba72-c608ababfd11",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "48fcea9f-943c-4ef1-8d2e-662494de998e",
+      "name": "NeedsReview Date Folder Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $('Parse JSON Data').item.json.submissionDate }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "13DWe7NA-esmFLvA-VOHkNq81UPSZySH6",
+          "mode": "list",
+          "cachedResultName": "Needs Review Log",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/13DWe7NA-esmFLvA-VOHkNq81UPSZySH6"
+        },
+        "options": {}
+      },
+      "id": "50f5456b-ab71-4fe0-b7b5-cc8659e93f0e",
+      "name": "Create NeedsReview Date Folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1104,
+        304
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "451xixH2NkLrwopB",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "={{ $('Download Photo').item.binary.data }}",
+        "name": "={{ 'receipt_' + $('Parse JSON Data').item.json.chatId + '_' + $('Parse JSON Data').item.json.messageId + '.jpg' }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create NeedsReview Date Folder').isExecuted ? $('Create NeedsReview Date Folder').item.json.id : $('Find NeedsReview Date Folder').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "d081d306-1fb2-4530-b303-4825dd37b688",
+      "name": "Upload To Needs-Review Folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1328,
+        224
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "451xixH2NkLrwopB",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse JSON Data').item.json.chatId }}",
+        "text": "={{ \"⚠️ I couldn't confidently read all details. Photo saved to review folder.\" }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "8eb12168-7ec4-4bc7-ab2d-e1e489dde042",
+      "name": "Notify User - Needs Review",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1552,
+        224
+      ],
+      "webhookId": "b0dba936-a231-40c0-acf5-dbee29618d89",
+      "credentials": {
+        "telegramApi": {
+          "id": "3pBMwHHAdVU5jXQ3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.5-flash"
+        },
+        "text": "Extract the following data points from this receipt image. Return the output strictly as a clean JSON object with these exact keys, and do not include any markdown formatting or extra text outside the JSON:{\"merchant_name\": \"Name of the store\",\"total_amount\": \"Total amount paid as a number\",\"date\": \"Date of transaction in YYYY-MM-DD format\"}",
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        80
+      ],
+      "id": "a99d9f4e-473f-431c-8355-6bad3b951702",
+      "name": "Image Data Extraction",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "svPac6AAwgEav7Ln",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Receipt Received": {
+      "main": [
+        [
+          {
+            "node": "Message Has Photo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message Has Photo?": {
+      "main": [
+        [
+          {
+            "node": "Photo Picker",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ask For A Photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Photo Picker": {
+      "main": [
+        [
+          {
+            "node": "Download Photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON Data": {
+      "main": [
+        [
+          {
+            "node": "Extraction Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraction Valid?": {
+      "main": [
+        [
+          {
+            "node": "Find Submission Date Folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find NeedsReview Date Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Submission Date Folder": {
+      "main": [
+        [
+          {
+            "node": "Submission Date Folder Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Submission Date Folder Exists?": {
+      "main": [
+        [
+          {
+            "node": "Upload Receipt Photo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Submission Date Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Submission Date Folder": {
+      "main": [
+        [
+          {
+            "node": "Upload Receipt Photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Receipt Photo": {
+      "main": [
+        [
+          {
+            "node": "Log Receipt To Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Receipt To Sheet": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find NeedsReview Date Folder": {
+      "main": [
+        [
+          {
+            "node": "NeedsReview Date Folder Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NeedsReview Date Folder Exists?": {
+      "main": [
+        [
+          {
+            "node": "Upload To Needs-Review Folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create NeedsReview Date Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create NeedsReview Date Folder": {
+      "main": [
+        [
+          {
+            "node": "Upload To Needs-Review Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Photo": {
+      "main": [
+        [
+          {
+            "node": "Image Data Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload To Needs-Review Folder": {
+      "main": [
+        [
+          {
+            "node": "Notify User - Needs Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Data Extraction": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ca69f875-4cb6-47a1-9b0b-95ea0885b611",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ea7246362346df01e709fd7f36b72c08e6682e136370815ab89e7410aaddaa3f"
+  },
+  "id": "C3G0gzhcrkIq82dh",
+  "tags": []
+}

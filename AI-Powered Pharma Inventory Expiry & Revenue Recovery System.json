@@ -1,0 +1,1295 @@
+{
+  "name": "AI-Powered Pharma Inventory Expiry & Revenue Recovery System",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        2144,
+        368
+      ],
+      "id": "f250983e-dac6-4cfa-a532-a591ed381ac5",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "de594445-6be0-4559-82f2-032aee1f9ba6",
+              "name": "system_prompt",
+              "value": "=You are an expert pharmaceutical inventory optimization AI. Your job is to format near-expiry inventory data into clear, highly professional communications based on the active data bucket.\n\nCURRENT ACTIVE BUCKET: medical_mission\n\nSTRICT OUTPUT GENERATION RULES:\n1. FINANCE MEMO GREETING: Write exactly one professional sentence addressing the finance team, informing them that these products are available for medical mission donation.\n2. TOTAL PRODUCT VALUE FORMATTING: Calculate or display the total financial value of the inventory items. Always display this value with exactly two decimal places, forcing trailing zeros if the value is whole (e.g., 3485.00 or 3485.50). Do not include currency symbols or thousands separators.\n3. ESTIMATED TAX SAVINGS FORMATTING: Display the calculated tax savings. Always format this value with exactly two decimal places, forcing trailing zeros if whole (e.g., 680.00 or 680.04). Do not include currency symbols or thousands separators.\n4. TAX PERCENTAGE FORMATTING: Display the tax shield rate strictly as a whole number followed immediately by a percentage sign (e.g., 25%).",
+              "type": "string"
+            },
+            {
+              "id": "812ecaf9-767d-4198-ab84-7b724fe26490",
+              "name": "user_prompt",
+              "value": "=Please process the following medical mission inventory data payload:\n\nActive Category: medical_mission\nEstimated Tax Savings from Payload: ₱{{ $json.estimatedTaxSavings }}\nRaw Product Data Stream:\n\"{{ $('Route based on category').item.json.productList }}\"\n\nApply the specific medical mission formatting rules and return the matching structured JSON block.",
+              "type": "string"
+            },
+            {
+              "id": "085e17c0-eb00-408e-8c53-6376d635b03f",
+              "name": "output_parser",
+              "value": "={\n  \"$schema\": \"http://json-schema.org\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"bucket_processed\": {\n      \"type\": \"string\",\n      \"enum\": [\"franchisee_permission\", \"medical_mission\"],\n      \"description\": \"The name of the inventory lane processed.\"\n    },\n    \"franchisee_email\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"subject\": { \"type\": \"string\" },\n        \"greeting_sentence\": { \"type\": \"string\" },\n        \"item_bullet_list\": { \"type\": \"string\" },\n        \"product_count\": { \"type\": \"integer\" },\n        \"estimated_total_price\": { \"type\": \"string\" }\n      }\n    },\n    \"tax_mission_report\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"finance_memo_greeting\": {\n          \"type\": \"string\",\n          \"description\": \"Exactly one sentence addressing the finance team regarding product availability for medical mission donation.\"\n        },\n        \"total_product_value\": {\n          \"type\": \"string\",\n          \"description\": \"The total value of products. Must strictly use two decimal places, including .00 for whole numbers.\"\n        },\n        \"estimated_tax_savings\": {\n          \"type\": \"string\",\n          \"description\": \"The corporate tax savings amount under Section 34(H). Must strictly use two decimal places, including .00 for whole numbers.\"\n        },\n        \"tax_percentage\": {\n          \"type\": \"string\",\n          \"description\": \"The tax shield percentage applied, formatted exactly as a number and percentage sign (e.g., 25%).\"\n        }\n      },\n      \"required\": [\"finance_memo_greeting\", \"total_product_value\", \"estimated_tax_savings\", \"tax_percentage\"]\n    }\n  },\n  \"required\": [\"bucket_processed\"]\n}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3056,
+        -16
+      ],
+      "id": "46e7e7d7-87ed-4504-9840-c31531e55765",
+      "name": "medical_mission"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "={{ $json.output_parser }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        3424,
+        304
+      ],
+      "id": "b5820bfe-48e4-44a4-af78-7b792f74e495",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3296,
+        304
+      ],
+      "id": "11f6029a-4c83-4c42-a87a-c2461a42807f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "svPac6AAwgEav7Ln",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1KrJP-G8X6A7ZQJBEVW5IKCyuj8GIe52LICABgSPs-MY",
+          "mode": "list",
+          "cachedResultName": "Pharma Inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1KrJP-G8X6A7ZQJBEVW5IKCyuj8GIe52LICABgSPs-MY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1681974907,
+          "mode": "list",
+          "cachedResultName": "CS  2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1KrJP-G8X6A7ZQJBEVW5IKCyuj8GIe52LICABgSPs-MY/edit#gid=1681974907"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2608,
+        176
+      ],
+      "id": "71fdf7c0-43a1-4534-8aba-43d68bae51da",
+      "name": "Get the medicine details",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2tkPplm0MppzlHIb",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let franchiseeItems = [];\nlet flashSaleItems = [];\nlet medicalMissionItems = [];\nlet totalTaxSavings = 0;\nlet rowDetails = [];\n\nconst today = new Date();\nconst weekLabel = 'Wk' + Math.ceil(today.getDate() / 7);\nconst dateProcessed = today.toISOString().slice(0, 10);\n\nfor (const item of items) {\n  // Skip anything already actioned in a previous run.\n  const status = (item.json['STATUS'] || '').toString().trim();\n  if (status !== '') continue;\n\n  // Read the pre-calculated column instead of re-deriving it from EXP text.\n  const monthsRemaining = Number(item.json['MONTHS REMAINING']);\n  if (isNaN(monthsRemaining)) continue;\n\n  const barcode = item.json['BARCODE'] || '';\n  const description = item.json['DESCRIPTION'] || '';\n  const qty = item.json['QTY'] || 0;\n  const exp = item.json['EXP'] || '';\n  const price = item.json['PRICE'] || 0;\n  const totalPrice = Number(item.json['TOTAL PRICE']) || 0;\n  \n  // EDIT: Extract n8n's native unique sheet row identifier \n  const rowNumber = item.json['row_number'];\n\n  // Safe check for blank/spacer cells at the bottom of the spreadsheet\n  if (!description || description.trim() === \"\") continue;\n\n  let bucket = null;\n  const rawItemString = `Barcode: ${barcode} | Product: ${description} | Qty: ${qty} | Price: ${price} | Expiry: ${exp}`;\n\n  if (monthsRemaining >= 6 && monthsRemaining <= 12) {\n    bucket = 'franchisee_permission';\n    franchiseeItems.push(rawItemString);\n  } else if (monthsRemaining >= 3 && monthsRemaining < 6) {\n    bucket = 'flash_sale';\n    flashSaleItems.push(rawItemString);\n  } else if (monthsRemaining >= 0 && monthsRemaining < 3) {\n    bucket = 'medical_mission';\n    totalTaxSavings += totalPrice * 0.25;\n    medicalMissionItems.push(`Product: ${description} | Total Cost Value: ${totalPrice}`);\n  } else {\n    continue; // already expired or further than 12 months out\n  }\n\n  const statusText = `${bucket} (${weekLabel})`;\n\n  // Single clean dataset mapping layout\n  rowDetails.push({\n    json: {\n      type: 'row_detail',\n      bucket: bucket,\n      'ROW_NUMBER': rowNumber, // EDITED: Added the unique key to the update payload\n      'BARCODE': barcode,\n      'DESCRIPTION': description,\n      'QTY': qty,\n      'EXP': exp,\n      'PRICE': price,\n      'TOTAL_PRICE': totalPrice,\n      'STATUS': statusText,\n      'DATE_PROCESSED': dateProcessed\n    }\n  });\n}\n\nconst summaries = [];\nif (franchiseeItems.length) {\n  summaries.push({ json: { type: 'bucket_summary', bucket: 'franchisee_permission', productList: franchiseeItems.join('\\n'), totalItems: franchiseeItems.length } });\n}\nif (flashSaleItems.length) {\n  summaries.push({ json: { type: 'bucket_summary', bucket: 'flash_sale', productList: flashSaleItems.join('\\n'), totalItems: flashSaleItems.length } });\n}\nif (medicalMissionItems.length) {\n  summaries.push({ json: { type: 'bucket_summary', bucket: 'medical_mission', productList: medicalMissionItems.join('\\n'), totalItems: medicalMissionItems.length, estimatedTaxSavings: totalTaxSavings.toFixed(2) } });\n}\n\nif (summaries.length === 0 && rowDetails.length === 0) {\n  return [{ json: { type: 'skip', bucket: 'skip' } }];\n}\n\nreturn [...summaries, ...rowDetails];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2384,
+        384
+      ],
+      "id": "3ec47603-29a8-49a2-96c5-d18116b47b44",
+      "name": "Group medicine by category"
+    },
+    {
+      "parameters": {
+        "sendTo": "iloveyou123xc@gmail.com",
+        "subject": "You're all set!",
+        "message": "There is no candidate for near expiry.",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3056,
+        368
+      ],
+      "id": "66ea9241-bea9-48e2-a4c4-d8465b2cf4fe",
+      "name": "Send 'Nothing to processed' this week",
+      "webhookId": "44abe139-17e0-4c19-a76b-3f9788d04079",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ewfirVVJ3yzjDoob",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.bucket }}",
+                    "rightValue": "franchisee_permission",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ade313c7-6c29-4ae2-9517-ea9a3c093a15"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "franchisee_permission"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "862ac1f3-9286-4ace-b4da-b18219da958c",
+                    "leftValue": "={{ $json.bucket }}",
+                    "rightValue": "flash_sale",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "flash_sale"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6721be68-2c56-473c-b72d-49094bc1a084",
+                    "leftValue": "={{ $json.bucket }}",
+                    "rightValue": "medical_mission",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "medical_mission"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "baeda601-4426-42cf-9de7-481823830d04",
+                    "leftValue": "={{ $json.bucket }}",
+                    "rightValue": "skip",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "skip"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        2832,
+        32
+      ],
+      "id": "ac8095d6-25c3-4c3a-8100-26eb87e7b31e",
+      "name": "Route based on category"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.bucket_processed }}",
+                    "rightValue": "franchisee_permission",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ab2ea4f7-7319-454d-91c4-eece45edc800"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "franchisee_permission"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b64a62b4-fa56-4b67-be0a-c47dfb2aa140",
+                    "leftValue": "={{ $json.output.bucket_processed }}",
+                    "rightValue": "flash_sale",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "flash_sale"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9071e003-74a0-4369-be81-bb1a4165d0a0",
+                    "leftValue": "={{ $json.output.bucket_processed }}",
+                    "rightValue": "medical_mission",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "medical_mission"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        3632,
+        64
+      ],
+      "id": "72139ba5-af63-41b9-891f-0209753dc0d8",
+      "name": "Route based on category1"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0AA6A0F2KT",
+          "mode": "list",
+          "cachedResultName": "pharma-finance-team"
+        },
+        "text": "={{ $json.output.tax_mission_report.finance_memo_greeting }}\nTotal Product Value: {{ $json.output.tax_mission_report.total_product_value }}\nEstimated Tax Saved: {{ $json.output.tax_mission_report.estimated_tax_savings }}\nTax Percentage:{{ $json.output.tax_mission_report.tax_percentage }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        3856,
+        272
+      ],
+      "id": "77de6297-6565-4c5c-a308-506b57d661ce",
+      "name": "Send 'Finance Report' to Finance Team",
+      "webhookId": "3a7472f0-1a73-4de4-bcc6-860dcd9f924f",
+      "credentials": {
+        "slackApi": {
+          "id": "6DRhgSveRQtciZu5",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1004340215376",
+        "text": "={{ $json.output.flash_sale.flash_sale_greeting }}\n{{ $json.output.flash_sale.item_bullet_list }}\n{{ $json.output.flash_sale.social_hashtags }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3856,
+        80
+      ],
+      "id": "dfe52d5f-747f-4d43-9e7d-b083ca13b627",
+      "name": "Send 'Flash Sale' product to RDU Team",
+      "webhookId": "70b99b87-364b-4e91-8bbd-51461239ef18",
+      "credentials": {
+        "telegramApi": {
+          "id": "3pBMwHHAdVU5jXQ3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "For Franchisee Near-Expiry",
+        "message": "={{ $json.output.franchisee_permission.franchisee_greeting }}\n{{ $json.output.franchisee_permission.item_bullet_list }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3856,
+        -112
+      ],
+      "id": "f8d61247-a1df-4fd9-be6f-e87f120aa6e5",
+      "name": "Draft Message for Franchisee",
+      "webhookId": "03b72cb8-cea1-4013-935b-5d18929d8a83",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ewfirVVJ3yzjDoob",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_prompt }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "={{ $json.system_prompt }}"
+            }
+          ]
+        },
+        "batching": {
+          "delayBetweenBatches": 15
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        3280,
+        80
+      ],
+      "id": "24fa9505-ce02-46a3-b923-72f9affb5cdf",
+      "name": "Generate Personalized Message"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "documentId": {
+          "__rl": true,
+          "value": "1KrJP-G8X6A7ZQJBEVW5IKCyuj8GIe52LICABgSPs-MY",
+          "mode": "list",
+          "cachedResultName": "Pharma Inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1KrJP-G8X6A7ZQJBEVW5IKCyuj8GIe52LICABgSPs-MY/edit?usp=drivesdk"
+        },
+        "title": "=CS {{ $now.toFormat('MMM yyyy') }} - {{ ['1st', '2nd', '3rd', '4th', '5th'][Math.ceil($now.day / 7) - 1] }} Week",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2384,
+        -32
+      ],
+      "id": "bc5a0417-62e8-454c-9bfd-e820f910af1e",
+      "name": "Create the week sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2tkPplm0MppzlHIb",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1KrJP-G8X6A7ZQJBEVW5IKCyuj8GIe52LICABgSPs-MY",
+          "mode": "list",
+          "cachedResultName": "Pharma Inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1KrJP-G8X6A7ZQJBEVW5IKCyuj8GIe52LICABgSPs-MY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('Create the week sheet').item.json.sheetId }}",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date Processed",
+              "displayName": "Date Processed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Barcode",
+              "displayName": "Barcode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Bucket",
+              "displayName": "Bucket",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty",
+              "displayName": "Qty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Exp",
+              "displayName": "Exp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Price",
+              "displayName": "Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Total Price",
+              "displayName": "Total Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2384,
+        176
+      ],
+      "id": "08ba35ef-2649-41ed-be16-14af49d26463",
+      "name": "Create the column name",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2tkPplm0MppzlHIb",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "258fbeb8-3a8d-4f16-bf3c-fbc1baa3e37b",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "row_detail",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2608,
+        384
+      ],
+      "id": "15f27b56-eeb7-46d6-a786-9794145e8ba1",
+      "name": "Split by type"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1KrJP-G8X6A7ZQJBEVW5IKCyuj8GIe52LICABgSPs-MY",
+          "mode": "list",
+          "cachedResultName": "Pharma Inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1KrJP-G8X6A7ZQJBEVW5IKCyuj8GIe52LICABgSPs-MY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('Create the week sheet').first().json.sheetId }}",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date Processed": "={{ $json.DATE_PROCESSED }}",
+            "Barcode": "={{ $json.BARCODE }}",
+            "Description": "={{ $json.DESCRIPTION }}",
+            "Bucket": "={{ $json.bucket }}",
+            "Qty": "={{ $json.QTY }}",
+            "Exp": "={{ $json.EXP }}",
+            "Price": "={{ $json.PRICE }}",
+            "Total Price": "={{ $json.TOTAL_PRICE }}",
+            "Status": "={{ $json.STATUS }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date Processed",
+              "displayName": "Date Processed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Barcode",
+              "displayName": "Barcode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Bucket",
+              "displayName": "Bucket",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Qty",
+              "displayName": "Qty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Exp",
+              "displayName": "Exp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Price",
+              "displayName": "Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Price",
+              "displayName": "Total Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2832,
+        288
+      ],
+      "id": "c26628c5-eb58-43db-9e85-6d96f2825ee8",
+      "name": "Append rows to weekly tab",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2tkPplm0MppzlHIb",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1KrJP-G8X6A7ZQJBEVW5IKCyuj8GIe52LICABgSPs-MY",
+          "mode": "list",
+          "cachedResultName": "Pharma Inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1KrJP-G8X6A7ZQJBEVW5IKCyuj8GIe52LICABgSPs-MY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1681974907,
+          "mode": "list",
+          "cachedResultName": "CS  2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1KrJP-G8X6A7ZQJBEVW5IKCyuj8GIe52LICABgSPs-MY/edit#gid=1681974907"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "STATUS": "={{ $json.STATUS }}",
+            "row_number": "={{ $json.ROW_NUMBER }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "BARCODE",
+              "displayName": "BARCODE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "DESCRIPTION",
+              "displayName": "DESCRIPTION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "QTY",
+              "displayName": "QTY",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "EXP",
+              "displayName": "EXP",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CATEGORY",
+              "displayName": "CATEGORY",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "PRICE",
+              "displayName": "PRICE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "TOTAL PRICE",
+              "displayName": "TOTAL PRICE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "MONTHS REMAINING",
+              "displayName": "MONTHS REMAINING",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "STATUS",
+              "displayName": "STATUS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "bucket",
+              "displayName": "bucket",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "TOTAL_PRICE",
+              "displayName": "TOTAL_PRICE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "DATE_PROCESSED",
+              "displayName": "DATE_PROCESSED",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2832,
+        480
+      ],
+      "id": "32fdd138-b8c2-418a-8e1c-885ed74fc141",
+      "name": "Update status in CS 2026",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2tkPplm0MppzlHIb",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      \"Date Processed\": \"\",\n      \"Barcode\": \"\",\n      \"Description\": \"\",\n      \"Bucket\": \"\",\n      \"Qty\": \"\",\n      \"Exp\": \"\",\n      \"Price\": \"\",\n      \"Total Price\": \"\",\n      \"Status\": \"\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2624,
+        -32
+      ],
+      "id": "aa30fecf-8ab5-4d77-8d39-39972778820e",
+      "name": "Set the Column Name"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "de594445-6be0-4559-82f2-032aee1f9ba6",
+              "name": "system_prompt",
+              "value": "=CURRENT ACTIVE BUCKET: flash_sale\n\nSTRICT OUTPUT GENERATION RULES:\n1. FLASH SALE GREETING: Write exactly one high-energy, exciting attention-grabbing header sentence announcing the flash sale to customers or creators.\n2. ITEM LIST FORMAT: Present items as a clean bulleted list. Each item line must strictly use this layout: \"- [Medicine Name] - [Count] - [Flash Price]\"\n3. PRICE FORMATTING RULE: For item flash prices, display the value as a whole number if the decimal is 0 (e.g., 20). If the decimal is a non-zero value, display it with exactly two decimal places (e.g., 22.50). Never use trailing \".00\" for whole numbers.\n4. HASHTAGS: Provide a short string containing exactly 3 trending local pharmacy/sale hashtags at the very bottom.",
+              "type": "string"
+            },
+            {
+              "id": "dda3f14f-7aea-4081-a31f-88eab54eb1e7",
+              "name": "user_prompt",
+              "value": "=Please process the following flash sale inventory data payload:\n\nActive Category: flash_sale\nRaw Product Data Stream:\n\"{{ $('Route based on category').item.json.productList }}\"\n\nApply the strict flash sale formatting rules and return the matching structured JSON block.",
+              "type": "string"
+            },
+            {
+              "id": "52c7f5d5-8d7a-4e1d-8338-1ac3e32ac7c3",
+              "name": "output_parser",
+              "value": "={\n  \"$schema\": \"http://json-schema.org\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"bucket_processed\": {\n      \"type\": \"string\",\n      \"enum\": [\"flash_sale\", \"medical_mission\", \"franchisee_permission\"],\n      \"description\": \"The name of the inventory lane processed by the workflow.\"\n    },\n    \"flash_sale\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"flash_sale_greeting\": {\n          \"type\": \"string\",\n          \"description\": \"Exactly one high-energy sentence announcing the flash sale blast.\"\n        },\n        \"item_bullet_list\": {\n          \"type\": \"string\",\n          \"description\": \"The structured bulleted list matching: - [Medicine] - [Count] - [Flash Price]\"\n        },\n        \"social_hashtags\": {\n          \"type\": \"string\",\n          \"description\": \"3 trending pharmacy/retail hashtags grouped together.\"\n        }\n      },\n      \"required\": [\"flash_sale_greeting\", \"item_bullet_list\", \"social_hashtags\"]\n    },\n    \"tax_mission_report\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"finance_memo_greeting\": {\n          \"type\": \"string\",\n          \"description\": \"Exactly one sentence addressing the finance team regarding product availability for medical mission donation.\"\n        },\n        \"total_product_value\": {\n          \"type\": \"string\",\n          \"description\": \"The total value of products. Must strictly use two decimal places, including .00 for whole numbers.\"\n        },\n        \"estimated_tax_savings\": {\n          \"type\": \"string\",\n          \"description\": \"The corporate tax savings amount under Section 34(H). Must strictly use two decimal places, including .00 for whole numbers.\"\n        },\n        \"tax_percentage\": {\n          \"type\": \"string\",\n          \"description\": \"The tax shield percentage applied, formatted exactly as a number and percentage sign (e.g., 25%).\"\n        }\n      },\n      \"required\": [\"finance_memo_greeting\", \"total_product_value\", \"estimated_tax_savings\", \"tax_percentage\"]\n    },\n    \"franchisee_permission\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"franchisee_greeting\": {\n          \"type\": \"string\",\n          \"description\": \"Exactly one polite sentence offering the near-expiry items to the franchisee.\"\n        },\n        \"item_bullet_list\": {\n          \"type\": \"string\",\n          \"description\": \"The structured bulleted list matching: - [Medicine] - [Count] - [Price] - [Expiry]\"\n        }\n      },\n      \"required\": [\"franchisee_greeting\", \"item_bullet_list\"]\n    }\n  },\n  \"required\": [\"bucket_processed\"]\n}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3056,
+        176
+      ],
+      "id": "c1ba03a2-de24-47a1-9bbb-7add4cfd2e87",
+      "name": "flash_sale"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "de594445-6be0-4559-82f2-032aee1f9ba6",
+              "name": "system_prompt",
+              "value": "=CURRENT ACTIVE BUCKET: franchisee_permission\n\nSTRICT OUTPUT GENERATION RULES:\n1. FRANCHISEE GREETING: Write exactly one professional, welcoming sentence offering the near-expiry items to the franchisee.\n2. ITEM LIST FORMAT: Present items as a clean bulleted list. Each item line must strictly use this layout: \"- [Medicine Name] - [Count] - [Price] - [Expiry]\"\n3. PRICE FORMATTING RULE: For item prices, display the value as a whole number if the decimal is 0 (e.g., 300). If the decimal is a non-zero value, display it with exactly two decimal places (e.g., 415.68). Never use trailing \".00\" for whole numbers.\n4. EXPIRY FORMAT: Extract and output the expiry date exactly as found in the raw stream (e.g., MM-YYYY).",
+              "type": "string"
+            },
+            {
+              "id": "74e9b804-4097-44d0-9fd6-cf28a023748c",
+              "name": "user_prompt",
+              "value": "=Please process the following franchisee permission inventory data payload:\n\nActive Category: franchisee_permission\nRaw Product Data Stream:\n\"{{ $('Route based on category').item.json.productList }}\"\n\nApply the strict franchisee formatting rules and return the matching structured JSON block.",
+              "type": "string"
+            },
+            {
+              "id": "b4e356be-e541-4e27-85c0-edc729dfc9d6",
+              "name": "output_parser",
+              "value": "={\n  \"$schema\": \"http://json-schema.org\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"bucket_processed\": {\n      \"type\": \"string\",\n      \"enum\": [\"flash_sale\", \"medical_mission\", \"franchisee_permission\"],\n      \"description\": \"The name of the inventory lane processed.\"\n    },\n    \"tax_mission_report\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"finance_memo_greeting\": { \"type\": \"string\" },\n        \"total_product_value\": { \"type\": \"string\" },\n        \"estimated_tax_savings\": { \"type\": \"string\" },\n        \"tax_percentage\": { \"type\": \"string\" }\n      }\n    },\n    \"franchisee_permission\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"franchisee_greeting\": {\n          \"type\": \"string\",\n          \"description\": \"Exactly one polite sentence offering the near-expiry items to the franchisee.\"\n        },\n        \"item_bullet_list\": {\n          \"type\": \"string\",\n          \"description\": \"The structured bulleted list matching: - [Medicine] - [Count] - [Price] - [Expiry]\"\n        }\n      },\n      \"required\": [\"franchisee_greeting\", \"item_bullet_list\"]\n    }\n  },\n  \"required\": [\"bucket_processed\"]\n}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3056,
+        -208
+      ],
+      "id": "fd1ac31d-5c91-4b1d-af8b-78d83425548d",
+      "name": "franchisee_permission"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Create the week sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "medical_mission": {
+      "main": [
+        [
+          {
+            "node": "Generate Personalized Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Personalized Message",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Personalized Message",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get the medicine details": {
+      "main": [
+        [
+          {
+            "node": "Group medicine by category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Group medicine by category": {
+      "main": [
+        [
+          {
+            "node": "Split by type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route based on category": {
+      "main": [
+        [
+          {
+            "node": "franchisee_permission",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "flash_sale",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "medical_mission",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send 'Nothing to processed' this week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route based on category1": {
+      "main": [
+        [
+          {
+            "node": "Draft Message for Franchisee",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send 'Flash Sale' product to RDU Team",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send 'Finance Report' to Finance Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Personalized Message": {
+      "main": [
+        [
+          {
+            "node": "Route based on category1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create the week sheet": {
+      "main": [
+        [
+          {
+            "node": "Set the Column Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create the column name": {
+      "main": [
+        [
+          {
+            "node": "Get the medicine details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split by type": {
+      "main": [
+        [
+          {
+            "node": "Append rows to weekly tab",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update status in CS 2026",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route based on category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set the Column Name": {
+      "main": [
+        [
+          {
+            "node": "Create the column name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "flash_sale": {
+      "main": [
+        [
+          {
+            "node": "Generate Personalized Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "franchisee_permission": {
+      "main": [
+        [
+          {
+            "node": "Generate Personalized Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f683240f-91d8-4cc9-a3da-b02c6d557a7c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ea7246362346df01e709fd7f36b72c08e6682e136370815ab89e7410aaddaa3f"
+  },
+  "id": "Z94icKF5Y8EdEmUB",
+  "tags": []
+}

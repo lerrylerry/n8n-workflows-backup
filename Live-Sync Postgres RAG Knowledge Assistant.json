@@ -1,0 +1,468 @@
+{
+  "name": "Live-Sync Postgres RAG Knowledge Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.4,
+          "topP": 0.8
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -864,
+        16
+      ],
+      "id": "04b23be6-042a-4452-8e4a-7fee6a71297d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "svPac6AAwgEav7Ln",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to search and retrieve relevant text snippets from the master personal knowledge base document to answer the user's question accurately.",
+        "tableName": "master_knowledge_base",
+        "options": {
+          "columnNames": {
+            "values": {
+              "contentColumnName": "content"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        -592,
+        16
+      ],
+      "id": "64f1a736-558a-44f4-a65f-52b2a5356182",
+      "name": "Postgres PGVector Store",
+      "credentials": {
+        "postgres": {
+          "id": "yGpiBRYymeTmEuky",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-english-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        224
+      ],
+      "id": "cc0747c7-02fb-455b-9afd-1a426f31ed01",
+      "name": "Embeddings Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "09iXGBurnQMXHBnq",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.sessionId || \"portfolio-guest-session\" }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -720,
+        16
+      ],
+      "id": "04e3b8fe-4583-4c74-85a7-180859093120",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.chatInput }}",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "You are John’s welcoming AI Portfolio Assistant. Introduce John Lerry B. Laungayan politely. Speak enthusiastically as his assistant (e.g., \"I'd be happy to tell you about John!\", \"John specializes in...\"). Answer queries using exclusively the facts from the provided context.\n\nCRITICAL OPERATIONAL RULES:\n1. TRUTHFULNESS: Answer using ONLY the provided text snippets. Do not guess, extrapolate, or invent details.\n2. HANDLING GAPS: State warmly and politely: \"I'm sorry, I couldn't find that specific detail in John's files, but I'd be happy to help you with anything else!\"\n3. READABILITY: Force high scannability. Use short paragraphs (max 2 sentences) and clean bullet points. Always bold primary technologies, platforms, and roles (e.g., n8n, Make.com, AI Automation Engineer) on first mention.\n4. BRAIN FILTER: Politely refuse to look up general web information. Your scope is strictly locked to John's personal files.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -800,
+        -208
+      ],
+      "id": "bde74bd3-3314-4fec-b1c8-f25a9d66139a",
+      "name": "Knowledge Base Assistant"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1tUQu9Vy17EwqNES8zeBooNbquwF8pJsd",
+          "mode": "list",
+          "cachedResultName": "Knowledge Base Documents",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1tUQu9Vy17EwqNES8zeBooNbquwF8pJsd"
+        },
+        "event": "fileUpdated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        400
+      ],
+      "id": "51ba1884-8db9-4223-9895-46faab54d493",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "451xixH2NkLrwopB",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Google Drive Trigger').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -224,
+        400
+      ],
+      "id": "cedae68c-4a97-4257-a4be-533b822b1a6a",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "451xixH2NkLrwopB",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        400
+      ],
+      "id": "d36180f9-6a90-4a18-a216-8a9d0dde52e5",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": "master_knowledge_base",
+        "embeddingBatchSize": 75,
+        "options": {
+          "columnNames": {
+            "values": {
+              "contentColumnName": "content"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        400
+      ],
+      "id": "d6372c22-0bd8-4154-9348-12b400487be9",
+      "name": "Postgres PGVector Store1",
+      "credentials": {
+        "postgres": {
+          "id": "yGpiBRYymeTmEuky",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        624
+      ],
+      "id": "2b65e423-fff6-4f96-8256-7d7ec163007c",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 150,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        624
+      ],
+      "id": "6cb2f392-4916-4348-a808-57ba58db2634",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "TRUNCATE TABLE master_knowledge_base;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -656,
+        400
+      ],
+      "id": "c4235932-1281-482b-9319-42a9a80e1a21",
+      "name": "Delete existing vector data",
+      "credentials": {
+        "postgres": {
+          "id": "yGpiBRYymeTmEuky",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "8752ed33-0d80-4f4e-9b27-89ab97302785",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1088,
+        0
+      ],
+      "id": "346d1ffd-8d06-4107-b41c-1de96c5b1004",
+      "name": "Webhook",
+      "webhookId": "8752ed33-0d80-4f4e-9b27-89ab97302785"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -448,
+        -208
+      ],
+      "id": "074ef83a-3e1e-49ef-8bbc-1feae2ea36d1",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatCohere",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        224
+      ],
+      "id": "2b91a41d-7bda-4755-8b11-244d75d5b705",
+      "name": "Cohere Chat Model",
+      "credentials": {
+        "cohereApi": {
+          "id": "09iXGBurnQMXHBnq",
+          "name": "CohereApi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Knowledge Base Assistant",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres PGVector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "Knowledge Base Assistant",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Postgres PGVector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Knowledge Base Assistant",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Delete existing vector data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Postgres PGVector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Postgres PGVector Store1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete existing vector data": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Knowledge Base Assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Knowledge Base Assistant": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cohere Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Knowledge Base Assistant",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6e18628d-9989-4b49-94c5-352a0a0b2fe5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ea7246362346df01e709fd7f36b72c08e6682e136370815ab89e7410aaddaa3f"
+  },
+  "id": "IcDplw37waXzHpex",
+  "tags": []
+}
